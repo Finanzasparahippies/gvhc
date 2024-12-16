@@ -1,0 +1,12 @@
+Django
+psycopg2-binary
+SpeechRecognition
+python-decouple
+django-cors-headers
+django-rest-framework
+openai
+language-tool-python
+Pillow
+python-dotenv
+cloudinary
+django-cloudinary-storage

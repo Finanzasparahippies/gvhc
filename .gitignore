@@ -1,0 +1,27 @@
+# Python files y cache
+__pycache__/
+*.py[cod]
+*.sqlite3
+*.db
+
+# Configuración de entorno
+# *.env
+
+# Archivos de log
+*.log
+
+# Archivos de migraciones de Django
+**/migrations/*.pyc
+**/migrations/__pycache__/
+
+# Archivos estáticos y media generados
+/staticfiles/
+/media/
+
+# Archivos y configuraciones específicas del IDE
+.vscode/
+.idea/
+
+# Archivos de sistema
+.DS_Store
+Thumbs.db
