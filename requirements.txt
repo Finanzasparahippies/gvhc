@@ -10,3 +10,5 @@ Pillow
 python-dotenv
 cloudinary
 django-cloudinary-storage
+dotenv
+setuptools
