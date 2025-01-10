@@ -1,4 +1,5 @@
 from django.contrib import admin
+from openpyxl import load_workbook
 from django.utils.html import format_html
 from .models import Faq, Answer, Step, Category, ResponseType, Event, Slide
 
@@ -29,8 +30,27 @@ class AnswerAdmin(admin.ModelAdmin):
 
 @admin.register(Step)
 class StepAdmin(admin.ModelAdmin):
-    list_display = ('number', 'text', 'answer')
+    list_display = ('number', 'text', 'answer', 'excel_file_preview')
     search_fields = ('text', 'answer')
+
+    def excel_file_preview(self, obj):
+        if obj.excel_file:
+            return f"Ver contenido: {obj.excel_file.name}"
+        return "No hay archivo"
+
+    excel_file_preview.short_description = "Archivo Excel"
+
+    def save_model(self, request, obj, form, change):
+        # Si se sube un archivo Excel, procesa el contenido
+        if obj.excel_file:
+            workbook = load_workbook(obj.excel_file)
+            sheet = workbook.active
+
+            # Procesar filas del Excel
+            for row in sheet.iter_rows(min_row=2, values_only=True):  # Salta la fila del encabezado
+                obj.text += f"{row}\n"  # Agrega el contenido del Excel al texto del paso
+
+        super().save_model(request, obj, form, change)
 
 @admin.register(Category)
 class CategoryAdmin(admin.ModelAdmin):

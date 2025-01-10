@@ -46,6 +46,8 @@ class Step(models.Model):
     number = models.PositiveIntegerField()  # Campo para el número del paso
     text = models.TextField()               # Campo para el texto del paso
     image = CloudinaryField('image', blank=True, null=True)
+    excel_file = models.FileField(upload_to='steps/excel_files/', blank=True, null=True) 
+
 
     class Meta:
         constraints = [

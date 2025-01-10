@@ -11,9 +11,25 @@ class AnswerConnectionSerializer(serializers.ModelSerializer):
 
 class StepSerializer(serializers.ModelSerializer):
     image_url = serializers.SerializerMethodField()
+    excel_content = serializers.SerializerMethodField()
+
     class Meta:
         model = Step
-        fields = ['number', 'text', 'image_url']
+        fields = ['number', 'text', 'image_url', 'excel_content']
+
+    def get_excel_content(self, obj):
+        if not obj.excel_file:
+            return None
+        try:
+            from openpyxl import load_workbook
+            workbook = load_workbook(obj.excel_file)
+            sheet = workbook.active
+            content = []
+            for row in sheet.iter_rows(min_row=2, values_only=True):  # Salta encabezados
+                content.append(row)
+            return content
+        except Exception as e:
+            return str(e)        
 
     def get_image_url(self, obj):
         if obj.image:  # Asegúrate de que la imagen existe

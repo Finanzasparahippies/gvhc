@@ -1,10 +1,11 @@
+import openpyxl
 from rest_framework import viewsets, status
 from rest_framework.decorators import api_view
 from rest_framework.response import Response
 from django.db.models import Q, F, Func, Value
 from django.db.models.functions import Concat
 from django.contrib.postgres.fields import ArrayField
-from .models import Answer, Faq, Event
+from .models import Answer, Faq, Event, Step
 from .serializers import AnswerSerializer, FaqSerializer, EventSerializer
 
 class AnswerViewSet(viewsets.ReadOnlyModelViewSet):
@@ -12,7 +13,7 @@ class AnswerViewSet(viewsets.ReadOnlyModelViewSet):
     serializer_class = AnswerSerializer
 
 class FaqViewSet(viewsets.ReadOnlyModelViewSet):
-    queryset = Faq.objects.select_related('category').prefetch_related('answers__steps', 'slides')
+    queryset = Faq.objects.select_related('category').prefetch_related('answers__steps', 'slides').order_by('id')
     serializer_class = FaqSerializer
 
 @api_view(['GET'])
@@ -44,3 +45,4 @@ def search_faqs(request):
 class EventViewSet(viewsets.ModelViewSet):
     queryset = Event.objects.all()
     serializer_class = EventSerializer
+
