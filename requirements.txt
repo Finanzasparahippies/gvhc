@@ -12,3 +12,4 @@ cloudinary
 django-cloudinary-storage
 dotenv
 setuptools
+whitenoise

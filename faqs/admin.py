@@ -3,7 +3,6 @@ from openpyxl import load_workbook
 from django.utils.html import format_html
 from .models import Faq, Answer, Step, Category, ResponseType, Event, Slide
 
-
 # Register your models here.
 
 @admin.register(Faq)
@@ -27,7 +26,6 @@ class AnswerAdmin(admin.ModelAdmin):
         return "No Image"
     display_image.short_description = 'Image'
 
-
 @admin.register(Step)
 class StepAdmin(admin.ModelAdmin):
     list_display = ('number', 'text', 'answer', 'excel_file_preview')
@@ -41,14 +39,23 @@ class StepAdmin(admin.ModelAdmin):
     excel_file_preview.short_description = "Archivo Excel"
 
     def save_model(self, request, obj, form, change):
-        # Si se sube un archivo Excel, procesa el contenido
+        # Procesar archivo Excel solo si está presente
         if obj.excel_file:
-            workbook = load_workbook(obj.excel_file)
-            sheet = workbook.active
+            try:
+                workbook = load_workbook(obj.excel_file)
+                sheet = workbook.active
 
-            # Procesar filas del Excel
-            for row in sheet.iter_rows(min_row=2, values_only=True):  # Salta la fila del encabezado
-                obj.text += f"{row}\n"  # Agrega el contenido del Excel al texto del paso
+                # Procesar filas del Excel
+                excel_content = []
+                for row in sheet.iter_rows(min_row=2, values_only=True):  # Salta encabezados
+                    excel_content.append(row)
+                    obj.text += f"{row}\n"  # Agrega al campo texto para propósitos de visualización
+
+                # Opcional: Guarda el contenido del Excel como texto
+                obj.text = "\n".join([str(row) for row in excel_content])
+
+            except Exception as e:
+                self.message_user(request, f"Error procesando archivo Excel: {e}", level='error')
 
         super().save_model(request, obj, form, change)
 
