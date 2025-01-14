@@ -4,12 +4,14 @@ SpeechRecognition
 python-decouple
 django-cors-headers
 django-rest-framework
+djangorestframework-simplejwt
+djangorestframework
 openai
 language-tool-python
 Pillow
 python-dotenv
 cloudinary
 django-cloudinary-storage
-dotenv
 setuptools
 whitenoise
+openpyxl
