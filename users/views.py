@@ -4,6 +4,9 @@ from rest_framework.response import Response
 from rest_framework_simplejwt.tokens import RefreshToken
 from django.contrib.auth.models import User
 from django.contrib.auth import authenticate
+from rest_framework.permissions import IsAuthenticated
+from .serializers import UserSerializer
+
 
 class LoginView(APIView):
     def post(self, request):
@@ -31,3 +34,9 @@ class RegisterView(APIView):
         user = User.objects.create_user(username=username, password=password)
         return Response({"message": "User created successfully"})
 
+class ProtectedUserView(APIView):
+    permission_classes = [IsAuthenticated]
+
+    def get(self, request):
+        serializer = UserSerializer(request.user)
+        return Response(serializer.data)
