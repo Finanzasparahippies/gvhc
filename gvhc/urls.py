@@ -20,6 +20,7 @@ from django.conf import settings
 from django.contrib import admin
 from django.urls import path, include
 from django.conf.urls.static import static
+from users.views import ProtectedUserView
 from rest_framework_simplejwt.views import (
     TokenObtainPairView,
     TokenRefreshView,
@@ -39,6 +40,7 @@ def root_view(request):
 
 urlpatterns = [
     path('', root_view, name='root'), 
+    path('protected/', ProtectedUserView, name='protected'),
     path('api/token/', TokenObtainPairView.as_view(), name='token_obtain_pair'),
     path('api/token/refresh/', TokenRefreshView.as_view(), name='token_refresh'),
     path('api/token/verify/', TokenVerifyView.as_view(), name='token_verify'),

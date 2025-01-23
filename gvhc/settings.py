@@ -212,3 +212,9 @@ CSRF_TRUSTED_ORIGINS = [
     "https://gvhc-backend.onrender.com",
 ]
 
+CORS_ALLOW_HEADERS = [
+    "content-type",
+    "authorization",
+    "x-requested-with",
+]
+
