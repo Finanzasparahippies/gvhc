@@ -198,14 +198,17 @@ DEFAULT_AUTO_FIELD = "django.db.models.BigAutoField"
 #keywords for calls
 KEYWORDS = ["Golden Valley Health Center", "ER", "two months", "PCP", "primary care provider", "emergency room", "help you", "assist you", "name", "date of birth", "birth date", "address", "phone", "else"]
 
-CORS_ALLOW_ALL_ORIGINS = True
-
+CORS_ALLOWED_ORIGINS = [
+    "https://gvhc.netlify.app",  # URL del frontend
+    "http://localhost:5173",  # Para pruebas locales
+]
 CORS_ALLOWED_ORIGIN_REGEXES = [
     r"^https://.*\.github\.dev$",
 ]
 
 CSRF_TRUSTED_ORIGINS = [
     "http://localhost:5173",
-    "http://localhost:3000",    
+    "https://gvhc.netlify.app",  # URL del frontend
+    "https://gvhc-backend.onrender.com",
 ]
 
