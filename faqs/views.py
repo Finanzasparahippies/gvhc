@@ -13,7 +13,7 @@ class AnswerViewSet(viewsets.ReadOnlyModelViewSet):
     serializer_class = AnswerSerializer
 
 class FaqViewSet(viewsets.ReadOnlyModelViewSet):
-    queryset = Faq.objects.select_related('category').prefetch_related('answers__steps', 'slides').order_by('id')
+    queryset = Faq.objects.all()
     serializer_class = FaqSerializer
 
 @api_view(['GET'])
