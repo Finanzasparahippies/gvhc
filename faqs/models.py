@@ -90,8 +90,16 @@ class Event(models.Model):
         return self.title
 
 class Faq(models.Model):
+    QUEUE_TYPES = [
+        ('MR', 'Medical Records'),
+        ('Scheduling', 'Scheduling'),
+        ('Referrals', 'Referrals'),
+        ('Artera', 'Artera'),
+    ] 
+    
     question = models.CharField(max_length=255)
     response_type = models.ForeignKey(ResponseType, on_delete=models.CASCADE, default=1)
+    queue_type = models.CharField(max_length=10, choices=QUEUE_TYPES, default='Scheduling')
     keywords = ArrayField(models.CharField(max_length=50), blank=True)  # Lista de palabras clave
     answers = models.ManyToManyField(Answer, related_name='faqs')
     category = models.ForeignKey(Category, on_delete=models.SET_NULL, null=True, blank=True)

@@ -66,10 +66,11 @@ class FaqSerializer(serializers.ModelSerializer):
     popularity = serializers.SerializerMethodField()
     response_type = serializers.SerializerMethodField()  
     category = serializers.SerializerMethodField()
+    queue_type = serializers.SerializerMethodField()
 
     class Meta:
         model = Faq
-        fields = ['id', 'question', 'category', 'answers', 'created_at', 'slides', 'popularity', 'response_type', 'keywords']
+        fields = ['id', 'question', 'category', 'answers', 'created_at', 'slides', 'popularity', 'response_type', 'queue_type', 'keywords']
 
     def get_popularity(self, obj):
         # Calcula la popularidad en base a la relevancia acumulada de las respuestas
