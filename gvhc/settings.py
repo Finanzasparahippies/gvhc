@@ -202,6 +202,7 @@ KEYWORDS = ["Golden Valley Health Center", "ER", "two months", "PCP", "primary c
 CORS_ALLOWED_ORIGINS = [
     "https://gvhc.netlify.app",  # URL del frontend
     "http://localhost:5173",  # Para pruebas locales
+    "https://gvhc-backend.onrender.com",
 ]
 CORS_ALLOWED_ORIGIN_REGEXES = [
     r"^https://.*\.github\.dev$",
