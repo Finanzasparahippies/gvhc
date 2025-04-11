@@ -1,0 +1,30 @@
+[33m0ac68bc[m[33m ([m[1;36mHEAD[m[33m -> [m[1;32mmain[m[33m)[m HEAD@{0}: reset: moving to HEAD~1
+[33m8187d56[m HEAD@{1}: reset: moving to HEAD~1
+[33m754bc50[m[33m ([m[1;31morigin/main[m[33m, [m[1;31morigin/HEAD[m[33m)[m HEAD@{2}: commit (merge): merge fixed
+[33m8187d56[m HEAD@{3}: checkout: moving from local-gvhc to main
+[33m4f8319e[m[33m ([m[1;31morigin/local-gvhc[m[33m, [m[1;32mlocal-gvhc[m[33m)[m HEAD@{4}: commit: faq position added
+[33m67585a4[m HEAD@{5}: checkout: moving from main to local-gvhc
+[33m8187d56[m HEAD@{6}: commit: cors render added
+[33m0ac68bc[m[33m ([m[1;36mHEAD[m[33m -> [m[1;32mmain[m[33m)[m HEAD@{7}: commit: ping added
+[33m437ad4b[m HEAD@{8}: checkout: moving from local-gvhc to main
+[33m67585a4[m HEAD@{9}: commit: ping added
+[33m437ad4b[m HEAD@{10}: checkout: moving from main to local-gvhc
+[33m437ad4b[m HEAD@{11}: checkout: moving from local-gvhc to main
+[33m437ad4b[m HEAD@{12}: checkout: moving from local-gvhc to local-gvhc
+[33m437ad4b[m HEAD@{13}: checkout: moving from main to local-gvhc
+[33m437ad4b[m HEAD@{14}: checkout: moving from main to main
+[33m437ad4b[m HEAD@{15}: commit: staticfiles added
+[33m0c8aa3f[m HEAD@{16}: commit: faqviwset query all
+[33m0d5e8c6[m HEAD@{17}: commit: protected view as view added
+[33m60b1d5f[m HEAD@{18}: commit: protected route added
+[33me5eeefb[m HEAD@{19}: commit: cors added
+[33md97aa93[m HEAD@{20}: commit: ruta 404 added
+[33m3f4575c[m HEAD@{21}: commit: Agrega el dominio a ALLOWED_HOSTS
+[33m20b6775[m HEAD@{22}: commit: freeze requirements
+[33m646d2c8[m HEAD@{23}: pull origin main: Fast-forward
+[33mabe2a83[m HEAD@{24}: commit: allow host render added
+[33m6072627[m HEAD@{25}: commit: paginacion aumentada pending xls files
+[33m7b22d8a[m HEAD@{26}: commit: changes 12/19/24
+[33m421443c[m HEAD@{27}: commit: notes node style added
+[33m33dec79[m HEAD@{28}: pull origin main: Fast-forward
+[33m823be8d[m HEAD@{29}: clone: from https://github.com/Finanzasparahippies/gvhc.git
