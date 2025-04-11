@@ -30,6 +30,10 @@ def search_faqs(request):
         ).distinct()
 
         serializer = FaqSerializer(faqs, many=True)
+
+        from pprint import pprint
+        pprint(serializer.data)       
+        
         return Response({'results': serializer.data}, status=200)
 
     except Exception as e:

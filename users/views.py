@@ -7,6 +7,7 @@ from django.contrib.auth.models import User
 from django.contrib.auth import authenticate
 from rest_framework.permissions import IsAuthenticated
 from .serializers import UserSerializer
+from django.http import JsonResponse
 
 
 class LoginView(APIView):
@@ -42,6 +43,10 @@ class ProtectedUserView(APIView):
         serializer = UserSerializer(request.user)
         return Response(serializer.data)
     
+<<<<<<< HEAD
 
 def ping(request):
+=======
+def ping():
+>>>>>>> local-gvhc
     return JsonResponse({'status': 'ok'})
