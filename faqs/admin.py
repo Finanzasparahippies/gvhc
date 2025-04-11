@@ -7,7 +7,7 @@ from .models import Faq, Answer, Step, Category, ResponseType, Event, Slide
 
 @admin.register(Faq)
 class FaqAdmin(admin.ModelAdmin):
-    list_display = ('question', 'response_type', 'keywords', 'created_at', 'get_answers', 'queue_type')
+    list_display = ('question', 'response_type', 'queue_type', 'created_at', 'get_answers', 'keywords')
     search_fields = ('question', 'keywords')
     filter_horizontal = ('answers',)
 

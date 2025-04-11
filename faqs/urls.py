@@ -10,7 +10,7 @@ router.register(r'events', EventViewSet)
 
 urlpatterns = [
     path('', include(router.urls)),
-    path('search/', search_faqs, name='search_faqs'),
+    path('faqs/search/', search_faqs, name='search_faqs'),
 ]
 
 

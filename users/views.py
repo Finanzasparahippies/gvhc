@@ -6,6 +6,7 @@ from django.contrib.auth.models import User
 from django.contrib.auth import authenticate
 from rest_framework.permissions import IsAuthenticated
 from .serializers import UserSerializer
+from django.http import JsonResponse
 
 
 class LoginView(APIView):
@@ -40,3 +41,6 @@ class ProtectedUserView(APIView):
     def get(self, request):
         serializer = UserSerializer(request.user)
         return Response(serializer.data)
+    
+def ping():
+    return JsonResponse({'status': 'ok'})

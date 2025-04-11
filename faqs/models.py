@@ -99,13 +99,15 @@ class Faq(models.Model):
     
     question = models.CharField(max_length=255)
     response_type = models.ForeignKey(ResponseType, on_delete=models.CASCADE, default=1)
-    queue_type = models.CharField(max_length=10, choices=QUEUE_TYPES, default='Scheduling')
+    queue_type = models.CharField(max_length=20, choices=QUEUE_TYPES, default='Scheduling')
     keywords = ArrayField(models.CharField(max_length=50), blank=True)  # Lista de palabras clave
     answers = models.ManyToManyField(Answer, related_name='faqs')
     category = models.ForeignKey(Category, on_delete=models.SET_NULL, null=True, blank=True)
     created_at = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)
     events = models.ManyToManyField(Event, blank=True, related_name='events')
+    pos_x = models.FloatField(null=True, blank=True)
+    pos_y = models.FloatField(null=True, blank=True)
 
     def __str__(self):
         return self.question 
