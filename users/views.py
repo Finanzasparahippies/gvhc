@@ -42,11 +42,6 @@ class ProtectedUserView(APIView):
     def get(self, request):
         serializer = UserSerializer(request.user)
         return Response(serializer.data)
-    
-<<<<<<< HEAD
 
 def ping(request):
-=======
-def ping():
->>>>>>> local-gvhc
     return JsonResponse({'status': 'ok'})
