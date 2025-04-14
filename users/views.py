@@ -42,5 +42,5 @@ class ProtectedUserView(APIView):
         serializer = UserSerializer(request.user)
         return Response(serializer.data)
     
-def ping():
+def ping(request):
     return JsonResponse({'status': 'ok'})

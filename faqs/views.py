@@ -7,6 +7,8 @@ from django.db.models.functions import Concat
 from django.contrib.postgres.fields import ArrayField
 from .models import Answer, Faq, Event, Step
 from .serializers import AnswerSerializer, FaqSerializer, EventSerializer
+from pprint import pprint
+
 
 class AnswerViewSet(viewsets.ReadOnlyModelViewSet):
     queryset = Answer.objects.all()
@@ -31,7 +33,6 @@ def search_faqs(request):
 
         serializer = FaqSerializer(faqs, many=True)
 
-        from pprint import pprint
         pprint(serializer.data)       
         
         return Response({'results': serializer.data}, status=200)
