@@ -8,3 +8,7 @@ class ReporteLlamadas(models.Model):
     archivo_origen = models.FileField(upload_to='reportes/')
 
     creado = models.DateTimeField(auto_now_add=True)
+    actualizado = models.DateTimeField(auto_now=True)
+
+    def __str__(self):
+            return f"Reporte {self.fecha_reporte} - Llamadas atendidas: {self.llamadas_atendidas}"
