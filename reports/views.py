@@ -1,5 +1,5 @@
 from django.shortcuts import render
-from django.http import JsonResponse
+from django.http import JsonResponse, FileResponse
 from django.views.decorators.csrf import csrf_exempt
 from .utils.procesamiento import procesar_archivo
 from .models import ReporteLlamadas
@@ -15,7 +15,7 @@ def procesar_reporte(request):
         print(f"Archivo recibido: {archivo.name}")
         # Suponiendo que el archivo es Excel
         try:
-            resultados = procesar_archivo(archivo)
+            resultados, archivo_generado = procesar_archivo(archivo)
         except Exception as e:
             return JsonResponse({'error': str(e)}, status=400)
         
@@ -27,14 +27,16 @@ def procesar_reporte(request):
             except ValueError as e:
                 return JsonResponse({'error': f"Error al procesar la fecha: {str(e)}"}, status=400)
             
-        # Guardar el reporte en la base de datos
-        nuevo_reporte = ReporteLlamadas.objects.create(
+        ReporteLlamadas.objects.create(
             fecha_reporte=fecha_reporte,
             total_llamadas=resultados["Total llamadas"],
             llamadas_atendidas=resultados["Total llamadas atendidas"],
             tmo=resultados["TMO"],
             archivo_origen=archivo
         )
-        return JsonResponse({'resultados': resultados})  # Devolver resultados como JSON, no como HTML
+
+        # Enviar el archivo procesado como respuesta para descarga
+        response = FileResponse(archivo_generado, as_attachment=True, filename='reporte_procesado.xlsx')
+        return response
 
     return JsonResponse({'error': 'Método no permitido o datos incompletos'}, status=400)
