@@ -59,6 +59,7 @@ INSTALLED_APPS = [
     "users",
     "testing",
     "queues",
+    "reports",
     #third party
     "rest_framework",
     "corsheaders",
@@ -202,16 +203,20 @@ KEYWORDS = ["Golden Valley Health Center", "ER", "two months", "PCP", "primary c
 CORS_ALLOWED_ORIGINS = [
     "https://gvhc.netlify.app",  # URL del frontend
     "http://localhost:5173",  # Para pruebas locales
+    "http://localhost:8000",
 ]
 CORS_ALLOWED_ORIGIN_REGEXES = [
     r"^https://.*\.github\.dev$",
 ]
 
 CSRF_TRUSTED_ORIGINS = [
+    "http://localhost:8000",
     "http://localhost:5173",
     "https://gvhc.netlify.app",  # URL del frontend
     "https://gvhc-backend.onrender.com",
 ]
+
+CSRF_COOKIE_NAME = 'csrftoken'  # Asegúrate de que este valor sea el correcto
 
 CORS_ALLOW_HEADERS = [
     "content-type",
@@ -219,3 +224,7 @@ CORS_ALLOW_HEADERS = [
     "x-requested-with",
 ]
 
+CORS_ALLOW_CREDENTIALS = True
+
+MEDIA_URL = '/media/'
+MEDIA_ROOT = os.path.join(BASE_DIR, 'media/')

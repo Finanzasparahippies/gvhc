@@ -34,7 +34,8 @@ def root_view(request):
             "tokens": "/api/token/",
             "users": "/api/",
             "answers": "/api/answers/",
-            "grammar": "/api/grammar/"
+            "grammar": "/api/grammar/",
+            "reports": "/api/reports/",
         }
     })
 
@@ -48,4 +49,5 @@ urlpatterns = [
     path('api/', include('users.urls')),
     path('api/answers/', include('faqs.urls') ),
     path('api/grammar/', include('calling_monitor.urls')),
+    path('api/reports/', include('reports.urls')),
 ] + static(settings.MEDIA_URL, document_root=settings.MEDIA_ROOT)
