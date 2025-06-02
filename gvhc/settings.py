@@ -9,20 +9,19 @@ https://docs.djangoproject.com/en/5.1/topics/settings/
 For the full list of settings and their values, see
 https://docs.djangoproject.com/en/5.1/ref/settings/
 """
-from dotenv import load_dotenv  # Importa dotenv para cargar variables
-from decouple import config
+import os  
+import psycopg2
 from pathlib import Path
-import cloudinary
-import os
+import cloudinary 
+from dotenv import load_dotenv
 from datetime import timedelta
 
-
-load_dotenv()  # Carga las variables desde .env 
+load_dotenv()
 
 cloudinary.config(
-    cloud_name=config("CLOUD_NAME"),
-    api_key=config("CLOUDINARY_API_KEY"),
-    api_secret=config("CLOUDINARY_API_SECRET"),
+    cloud_name=os.getenv("CLOUD_NAME"),
+    api_key=os.getenv("CLOUDINARY_API_KEY"),
+    api_secret=os.getenv("CLOUDINARY_API_SECRET"),
     secure=True
     )
 
@@ -38,12 +37,12 @@ DEFAULT_FILE_STORAGE = 'cloudinary_storage.storage.MediaCloudinaryStorage'
 # See https://docs.djangoproject.com/en/5.1/howto/deployment/checklist/
 
 # SECURITY WARNING: keep the secret key used in production secret!
-SECRET_KEY = config('SECRET_KEY')
+SECRET_KEY = os.getenv('SECRET_KEY')
 
 # SECURITY WARNING: don't run with debug turned on in production!
-DEBUG = config('DEBUG', default=False, cast=bool)
+DEBUG = os.getenv('DEBUG', 'False').lower() in ('true', '1', 't')
 
-ALLOWED_HOSTS = config('ALLOWED_HOSTS').split(',')
+ALLOWED_HOSTS = os.getenv('ALLOWED_HOSTS').split(',')
 
 
 # Application definition
@@ -60,6 +59,7 @@ INSTALLED_APPS = [
     "testing",
     "queues",
     "reports",
+    "dashboards",
     #third party
     "rest_framework",
     "corsheaders",
@@ -123,30 +123,44 @@ WSGI_APPLICATION = "gvhc.wsgi.application"
 
 # Database
 # https://docs.djangoproject.com/en/5.1/ref/settings/#databases
-MODE = config("MODE", default="development")
+MODE = os.getenv("MODE", default="development")
+POSTGRES_HOST = os.getenv('POSTGRES_HOST')
 print("MODE from .env:", MODE)
+print("MODE from environment (os.environ):", os.environ.get("MODE"))
+print(f"'{POSTGRES_HOST}'")
+
 
 if MODE == "production":
     # Configuración para PostgreSQL en producción
     DATABASES = {
         "default": {
             'ENGINE': 'django.db.backends.postgresql',
-            'NAME': config('POSTGRES_NAME'),
-            'USER': config('POSTGRES_DB_USER'),
-            'PASSWORD': config('POSTGRES_PASSWORD'),
-            'HOST': config('POSTGRES_HOST'),
-            'PORT': config('POSTGRES_PORT'),             
+            'NAME': os.getenv('POSTGRES_NAME'),
+            'USER': os.getenv('POSTGRES_DB_USER'),
+            'PASSWORD': os.getenv('POSTGRES_PASSWORD'),
+            'HOST': os.getenv('POSTGRES_HOST'),
+            'PORT': os.getenv('POSTGRES_PORT'),             
         }
 }
 
 else:
-    # Configuración para SQLite en desarrollo
-    DATABASES = {
-        'default': {
-            'ENGINE': 'django.db.backends.sqlite3',
-            'NAME': BASE_DIR / 'db.sqlite3',
+        DATABASES = {
+        "default": {
+            'ENGINE': 'django.db.backends.postgresql',
+            'NAME': os.getenv('POSTGRES_NAME'),
+            'USER': os.getenv('POSTGRES_DB_USER'),
+            'PASSWORD': os.getenv('POSTGRES_PASSWORD'),
+            'HOST': os.getenv('POSTGRES_HOST'),
+            'PORT': os.getenv('POSTGRES_PORT'),             
         }
-    }
+}
+    # Configuración para SQLite en desarrollo
+    # DATABASES = {
+    #     'default': {
+    #         'ENGINE': 'django.db.backends.sqlite3',
+    #         'NAME': BASE_DIR / 'db.sqlite3',
+    #     }
+    # }
 
 # Password validation
 # https://docs.djangoproject.com/en/5.1/ref/settings/#auth-password-validators

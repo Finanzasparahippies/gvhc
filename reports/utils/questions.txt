@@ -1,0 +1,42 @@
+
+PACE Referrals
+  Did the PAR greet the patient appropriately (script)?= 5
+  Dis PAR followed HIPPA protocols?= 15
+  Did the PAR confirm the correct Imaging Auth #, Valid dates from/to, Type of order?= 5
+  Did the PAR confirm the correct Weight/length and risk factors requested?= 5
+  Did the PAR confirm the type of exam needed?= 5
+  Did the PAR requested for caller's name?= 5
+  Did the PAR sheduled properly in Epic?= 10
+  Did the PAR request the appointment based on times/dates of current/past appointments in chart?= 5
+  Did the PAR indicate the need for transportation/escort in the appointment?= 10
+  Did the PAR logg any applicable instructions/Notes given to the appointment?= 10
+  Did the PAR effectively submit for auth, order/coversheet (If needed)?= 10
+  Did the PAR sheduled properly in SOPHIA?= 10
+  Did the PAR Updated the correct order Appt date / Time?= 7
+  Did the PAR leave a complete and clear communication in Sophia same as Epic?= 5
+  Did the PAR Updated the correct order mak if transportation/scort was needed?= 10
+  Did the PAR followed up accordingly to time frames? (STAT)= 10
+  Did PAR created Epic documents/packet with all needed information?= 15
+  Did the PAR call the patient to advise regarding upcoming appt or VM (If needed)?= 13
+
+
+PACE Imaging
+    Did the PAR confirm the patient's name, DOB and specialty they are calling for? =  5
+    Did the PAR Requested for caller's name? =  5
+    Did the PAR assigned the correct referral to the appointment? =  10
+    Did the PAR fill out Referred by/to section and CPTs in EPIC to mirror SOPHIA? =  6
+    Did the PAR select the correct vendor when scheduling the appointment? =  5
+    Did the PAR upload the complete referral attachment into EPIC when faxing referral? =  10
+    Did PAR review previous notes on EPIC? =  8
+    Did the PAR leave a clear note with sufficient information and grammar? =  10
+    Did the PAR follow transportation protocol if needed? =  8
+    Did the PAR select the correct referral status in EPIC? =  5
+    Did the PAR send communication to the correct team/member according to order needs? =  18
+    Did the PAR sheduled properly in SOPHIA? =  10
+    Did the PAR Updated the correct order Status? =  8
+    Did the PAR leave a clear note with sufficient information and grammar?1 =  10
+    Did the PAR select the correct engagement type? =  6
+    Did the PAR add the correct transportation needs according to EPIC? =  6
+    Did PAR review previous notes on SOPHIA? =  10
+    Did PAR ask probing questions when reaching office? =  10
+ 
