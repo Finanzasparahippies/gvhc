@@ -20,12 +20,13 @@ class Category(models.Model):
 
 class Answer(models.Model):
     NODE_TYPES = [
-        ('CustomResizableNode', 'CustomResizableNode'),
-        ('NonResizableNode', 'NonResizableNode'),
-        ('slidesToElements', 'slidesToElements'),
-        ('TooltipNode', 'Tooltip Node'),
+        ('CustomResizableNode', 'Custom Resizable Node'),
+        ('NonResizableNode', 'Non Resizable Node'),
+        ('slidesToElements', 'slides To Elements'),
+        ('TooltipNode', 'Tool tip Node'),
         ('AnnotationNode', 'Annotation Node'),
         ('NotesNode', 'Note Node'),
+        ('TemplateNode', 'Template Node'),
     ]
     title = models.CharField(max_length=255, blank=True, null=True)
     answer_text = models.TextField(blank=True, null=True)
