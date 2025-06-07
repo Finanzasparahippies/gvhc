@@ -21,7 +21,7 @@ class Category(models.Model):
 class Answer(models.Model):
     NODE_TYPES = [
         ('CustomResizableNode', 'CustomResizableNode'),
-        ('NonresizableNode', 'NonresizableNode'),
+        ('NonResizableNode', 'NonResizableNode'),
         ('slidesToElements', 'slidesToElements'),
         ('TooltipNode', 'Tooltip Node'),
         ('AnnotationNode', 'Annotation Node'),
