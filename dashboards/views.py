@@ -8,6 +8,7 @@ from rest_framework.permissions import AllowAny
 from rest_framework.response import Response
 
 # Create your views here.
+logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
 
 class SharpenApiProxyView(APIView):
@@ -32,37 +33,16 @@ class SharpenApiProxyView(APIView):
             logger.error(f"Error: SHARPEN_CKEY1={cKey1}, SHARPEN_CKEY2={cKey2}, SHARPEN_UKEY={uKey} no están configuradas correctamente en el entorno.")
             return Response({"error": "Configuración del servidor incompleta."}, status=500)
         
-        external_api_url = 'https://api-current.iz1.sharpen.cx/V2/query'
-        # external_api_url = 'https://api-current.iz1.sharpen.cx/V2/queues/getQueueCDR'
-
-        param001_val = request.data.get('param001')
-        param002_val = request.data.get('param002')
-        param003_val = request.data.get('param003')
+        external_api_url = 'https://api-current.iz1.sharpen.cx/V2/query/'
+        
         method_from_client = request.data.get('method', '')
-
-        params_dict = {
-            ":param001": param001_val,
-            ":param002": param002_val,
-            ":param003": param003_val
-        }
-
-        # final_query = final_query.replace('crm-companyID', '`crm-companyID`')
-
-        # payload = {
-        #     "method": method_from_client,
-        #     "q": final_query,
-        #     "cKey1": cKey1,
-        #     "cKey2": cKey2,
-        #     "uKey": uKey
-        # }
 
         internal_payload = {
             "cKey1": cKey1,
             "cKey2": cKey2,
             "uKey": uKey,
+            "endpoint": "V2/query/",
             "q": base_query,
-            # Añade todos los parámetros adicionales que Sharpen espera,
-            # incluso si están vacíos. Esto es crucial si la API es estricta.
             "pKey2": "",
             "connection.database": "",
             "connection.password": "",
@@ -71,22 +51,19 @@ class SharpenApiProxyView(APIView):
             "connection": "",
             "crm-userID": "",
             "distinctColumn": "",
-            "params": json.dumps(params_dict), # <-- ¡Aquí está la cadena JSON de parámetros!
-            "method": method_from_client, # El ejemplo de PHP no lo incluye, pero tu doc dice "method: query"
+            "params": "", 
+            "method": method_from_client, 
             "table": "",
             "database": "",
             "server": "",
             "append": "",
         }
 
-        # final_payload = {'formdata': json.dumps(internal_payload)}
-
-
         try:
                 logger.info(f"Enviando petición a Sharpen: {internal_payload}")
                 response = requests.post(
                     external_api_url,
-                    json=internal_payload,
+                    data=internal_payload,
                     # headers={'Content-Type': 'application/json'},
                     timeout=30
                 )
@@ -98,6 +75,12 @@ class SharpenApiProxyView(APIView):
                 response.raise_for_status() 
                 try:
                     result = response.json()
+
+                    if result.get('status') == 'Complete':
+                        logger.info("¡ÉXITO! Conexión y consulta a la base de datos de Sharpen realizadas correctamente.")
+                    else:
+                        logger.warning(f"La API de Sharpen respondió, pero el estado no fue 'Complete'. Estado recibido: {result.get('status')}")
+
                     return Response(result) 
                 except json.JSONDecodeError:
                     logger.warning("Respuesta con Content-Type JSON pero no se pudo parsear.")
