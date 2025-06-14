@@ -17,7 +17,7 @@ class FaqAdmin(admin.ModelAdmin):
 
 @admin.register(Answer)
 class AnswerAdmin(admin.ModelAdmin):
-    list_display = ('title','answer_text', 'relevance', 'display_image', 'template')
+    list_display = ('title','node_type', 'answer_text', 'relevance', 'display_image', 'template')
     search_fields = ('title','answer_text', 'steps')
 
     def display_image(self, obj):

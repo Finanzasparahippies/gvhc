@@ -218,6 +218,7 @@ CORS_ALLOWED_ORIGINS = [
     "https://gvhc.netlify.app",  # URL del frontend
     "http://localhost:5173",  # Para pruebas locales
     "http://localhost:8000",
+    "https://api-current.iz1.sharpen.cx",
 ]
 CORS_ALLOWED_ORIGIN_REGEXES = [
     r"^https://.*\.github\.dev$",
@@ -228,6 +229,7 @@ CSRF_TRUSTED_ORIGINS = [
     "http://localhost:5173",
     "https://gvhc.netlify.app",  # URL del frontend
     "https://gvhc-backend.onrender.com",
+    "https://api-current.iz1.sharpen.cx",
 ]
 
 CSRF_COOKIE_NAME = 'csrftoken'  # Asegúrate de que este valor sea el correcto

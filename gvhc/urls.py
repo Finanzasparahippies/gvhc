@@ -36,6 +36,7 @@ def root_view(request):
             "answers": "/api/answers/",
             "grammar": "/api/grammar/",
             "reports": "/api/reports/",
+            "dashboards": "/api/dashboards"
         }
     })
 
@@ -50,4 +51,5 @@ urlpatterns = [
     path('api/answers/', include('faqs.urls') ),
     path('api/grammar/', include('calling_monitor.urls')),
     path('api/reports/', include('reports.urls')),
+    path('api/dashboards/', include('dashboards.urls')),
 ] + static(settings.MEDIA_URL, document_root=settings.MEDIA_ROOT)
