@@ -185,7 +185,45 @@ AUTH_PASSWORD_VALIDATORS = [
 
 AUTH_USER_MODEL = 'users.User'
 
-
+LOGGING = {
+    'version': 1,
+    'disable_existing_loggers': False,
+    'formatters': {
+        'verbose': {
+            'format': '{levelname} {asctime} {module} {process:d} {thread:d} {message}',
+            'style': '{',
+        },
+        'simple': {
+            'format': '{levelname} {message}',
+            'style': '{',
+        },
+    },
+    'handlers': {
+        'console': {
+            'level': 'DEBUG', # Cambia a INFO si solo quieres ver los INFO y superiores
+            'class': 'logging.StreamHandler',
+            'formatter': 'simple', # Puedes usar 'verbose' para más detalles
+        },
+    },
+    'loggers': {
+        'django': { # Logs de Django
+            'handlers': ['console'],
+            'level': 'INFO', # O 'DEBUG' si quieres ver más logs internos de Django
+            'propagate': False,
+        },
+        '': { # Este es el logger por defecto para tu código de aplicación (tu views.py)
+            'handlers': ['console'],
+            'level': 'DEBUG', # ¡IMPORTANTE! Asegúrate de que esté en DEBUG o INFO
+            'propagate': False,
+        },
+        # Si quieres configurar específicamente tu logger de views.py:
+        # 'tu_app_nombre.views': { # Reemplaza 'tu_app_nombre' con el nombre real de tu app
+        #    'handlers': ['console'],
+        #    'level': 'DEBUG',
+        #    'propagate': False,
+        # },
+    }
+}
 # Internationalization
 # https://docs.djangoproject.com/en/5.1/topics/i18n/
 
