@@ -258,6 +258,67 @@ def stream_audio_from_url(audio_url: str, recording_key: str):
         logger.error(f"Error de red al descargar audio para {recording_key}: {e}")
         return JsonResponse({"error": "Error de comunicación con el servidor de audio."}, status=502)
 
+class SharpenAudioProxyView(View): # Usamos View en lugar de APIView porque no manejamos JSON de entrada/salida directamente
+    permission_classes = [AllowAny] # O ajusta tus permisos según sea necesario
+
+    def get(self, request, *args, **kwargs):
+        # Aquí obtenemos los parámetros necesarios de la URL.
+        # Asumimos que el frontend enviará `mixmonFileName` y `uniqueID` como query parameters.
+        mixmon_file_name = request.GET.get('mixmonFileName')
+        unique_id = request.GET.get('uniqueID')
+
+        if not mixmon_file_name or not unique_id:
+            logger.error("Faltan los parámetros 'mixmonFileName' o 'uniqueID' para la solicitud de audio.")
+            return JsonResponse({"error": "Parámetros de audio incompletos."}, status=400)
+
+        logger.info(f"Solicitud de audio proxy recibida para mixmonFileName: {mixmon_file_name}, uniqueID: {unique_id}")
+
+        # 1. Obtener la URL presignada de Sharpen
+        sharpen_audio_url = get_sharpen_audio_url(mixmon_file_name, unique_id)
+
+        if not sharpen_audio_url:
+            logger.error(f"No se pudo obtener la URL de audio de Sharpen para {mixmon_file_name}.")
+            return JsonResponse({"error": "No se pudo obtener la URL de audio de Sharpen."}, status=500)
+
+        logger.info(f"URL de audio de Sharpen obtenida: {sharpen_audio_url}")
+
+        # 2. Stream el audio desde la URL de Sharpen y añadir cabeceras CORS
+        # La función `stream_audio_from_url` ya devuelve un StreamingHttpResponse.
+        # Necesitamos agregar las cabeceras CORS a esa respuesta.
+        response = stream_audio_from_url(sharpen_audio_url, unique_id)
+        origin = request.META.get('HTTP_ORIGIN')
+        if origin:
+            # Aquí podrías validar si el origen está permitido en tu lista blanca
+            # Para fines de depuración, permitimos cualquier origen si se envía
+            response['Access-Control-Allow-Origin'] = origin
+        else:
+        # Añadir las cabeceras CORS a la respuesta del streaming.
+        # Asegúrate de que tu frontend (ej. http://localhost:3000, o tu dominio de producción)
+        # esté en la lista de orígenes permitidos.
+            response['Access-Control-Allow-Origin'] = '*'
+        # Para producción, es mejor especificar:
+        # response['Access-Control-Allow-Origin'] = 'https://tu-dominio-produccion.com'
+        response['Access-Control-Allow-Methods'] = 'GET, OPTIONS'
+        response['Access-Control-Allow-Headers'] = 'Content-Type, Authorization' # Si tu frontend envía alguna cabecera
+        response['Access-Control-Allow-Credentials'] = 'true' # Si manejas cookies o credenciales
+
+        return response
+
+    def options(self, request, *args, **kwargs):
+        # Manejar las solicitudes OPTIONS (preflight) para CORS
+        response = HttpResponse(status=204) # 204 No Content para preflight
+        origin = request.META.get('HTTP_ORIGIN')
+        if origin:
+            response['Access-Control-Allow-Origin'] = origin
+        else:
+            response['Access-Control-Allow-Origin'] = '*'
+        response['Access-Control-Allow-Methods'] = 'GET, OPTIONS'
+        response['Access-Control-Allow-Headers'] = 'Content-Type, Authorization'
+        response['Access-Control-Allow-Credentials'] = 'true'
+        response['Access-Control-Max-Age'] = '86400' # Cache preflight por 24 horas
+        logger.info(f"SharpenAudioProxyView: Recibida solicitud OPTIONS (preflight) desde {origin}.")
+        return response
+
 class SharpenApiGenericProxyView(APIView):
     permission_classes = [AllowAny]
 
@@ -295,9 +356,20 @@ class SharpenApiGenericProxyView(APIView):
 
         # Manejo de endpoints específicos
         if endpoint == "V2/voice/callRecordings/createRecordingURL":
-            # Este manejador no necesita el full_payload con las claves de auth,
-            # ya que llama directamente a `get_sharpen_audio_url` que las maneja.
-            return self._handle_create_recording_url(payload)
+            mixmon_file_name = payload.get('fileName')
+            recording_key = payload.get('uniqueID') or payload.get('queueCallManagerID')
+            if not mixmon_file_name and not recording_key: 
+                    logger.error("createRecordingURL: Faltan uniqueID o fileName en el payload.")
+                    return JsonResponse({"status": "error", "description": "Missing uniqueID or fileName for audio URL request"}, status=400)
+
+                # Usa `recording_key` como `uniqueID` y `mixmon_file_name` como `fileName`
+            sharpen_url = get_sharpen_audio_url(mixmon_file_name, recording_key)
+            if sharpen_url:
+                logger.info(f"createRecordingURL: URL obtenida para el frontend: {sharpen_url}")
+                return JsonResponse({"status": "successful", "url": sharpen_url})
+            else:
+                logger.error("createRecordingURL: Fallo al obtener la URL de Sharpen.")
+                return JsonResponse({"status": "error", "description": "Failed to get Sharpen recording URL"}, status=500)
         
         if endpoint == "V2/query/":
             # Aquí sí necesitamos el full_payload para enviar a Sharpen después de modificar la query.
@@ -324,22 +396,7 @@ class SharpenApiGenericProxyView(APIView):
             
             # 1. Obtenemos las claves de autenticación
             full_payload = {**auth_payload, **control_payload, **payload}
-            return self._forward_to_sharpen(endpoint, full_payload) # <--- ADDED RETURN HERE
-        
-        elif endpoint == "V2/queues/getInteraction/":
-            logger.info("Manejando endpoint 'getInteraction'. Se añadirán claves de auth.")
-            
-            final_payload = {**auth_payload, **payload}
-            if 'uKey' in payload and payload['uKey']: # Prioritize frontend's uKey if provided
-                final_payload['uKey'] = payload['uKey']
-            return self._forward_to_sharpen(endpoint, final_payload)
-        
-        elif endpoint == "V2/aws/getObjectLink/":
-            logger.info("Manejando endpoint 'getAwsObjectLink'. Se añadirán claves de auth.")
-            # The frontend payload for getObjectLink already contains `bucketName` and `fileName`.
-            # We combine it with the backend's core auth keys.
-            final_payload = {**auth_payload, **payload}
-            return self._forward_to_sharpen(endpoint, final_payload)
+            return self._forward_to_sharpen(endpoint, full_payload) 
         
         else:
             logger.info(f"Manejando endpoint genérico: '{endpoint}'.")
@@ -368,34 +425,6 @@ class SharpenApiGenericProxyView(APIView):
             "clickToCallID": "",
             "callRecordID": "",
         }
-
-    def _handle_create_recording_url(self, payload):
-        """
-        Maneja la solicitud para obtener una URL de grabación de Sharpen.
-        Delega la lógica a la función `get_sharpen_audio_url`.
-        """
-        mixmon_file_name = payload.get('fileName')
-
-        if mixmon_file_name:
-            logger.info(f"Intentando obtener URL de S3 con mixmonFileName: {mixmon_file_name}")
-            s3_url = get_sharpen_audio_url(mixmon_file_name, mixmon_file_name)
-            if s3_url:
-                return JsonResponse({"status": "successful", "url": s3_url})
-            else:
-                logger.warning(f"Fallo al obtener URL de S3 con mixmonFileName: {mixmon_file_name}. Procediendo con fallback.")
-        
-        recording_key = payload.get('uniqueID') or payload.get('queueCallManagerID')
-
-        if not recording_key:
-            logger.error("uniqueID no proporcionado en createRecordingURL.")
-            return JsonResponse({"status": "error", "description": "Missing uniqueID"}, status=400)
-
-        url = get_sharpen_audio_url(recording_key)
-        if url:
-            return JsonResponse({"status": "successful", "url": url})
-        return JsonResponse({"status": "error", "description": "Sharpen audio URL request failed"}, status=500)
-
-    # El método _handle_sql_query ya fue integrado directamente en `post` para manejar el `full_payload_for_forward`
 
     def _forward_to_sharpen(self, endpoint, payload):
         """

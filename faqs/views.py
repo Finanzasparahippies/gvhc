@@ -10,11 +10,11 @@ from .serializers import AnswerSerializer, FaqSerializer, EventSerializer
 from pprint import pprint
 
 
-class AnswerViewSet(viewsets.ReadOnlyModelViewSet):
+class AnswerViewSet(viewsets.ModelViewSet):
     queryset = Answer.objects.all()
     serializer_class = AnswerSerializer
 
-class FaqViewSet(viewsets.ReadOnlyModelViewSet):
+class FaqViewSet(viewsets.ModelViewSet):
     queryset = Faq.objects.all()
     serializer_class = FaqSerializer
 

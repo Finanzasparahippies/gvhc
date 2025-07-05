@@ -7,10 +7,9 @@ router.register(r'answers', AnswerViewSet)
 router.register(r'faqs', FaqViewSet)
 router.register(r'events', EventViewSet)
 
-
 urlpatterns = [
     path('search/', search_faqs, name='search_faqs'),
-    path('', include(router.urls)),
+    *router.urls,
 ]
 
 

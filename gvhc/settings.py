@@ -183,6 +183,11 @@ AUTH_PASSWORD_VALIDATORS = [
     },
 ]
 
+AUTHENTICATION_BACKENDS = [
+    'django.contrib.auth.backends.ModelBackend',
+    # Add other backends if you use them, e.g., 'allauth.account.auth_backends.AuthenticationBackend'
+]
+
 AUTH_USER_MODEL = 'users.User'
 
 LOGGING = {
@@ -282,3 +287,45 @@ CORS_ALLOW_CREDENTIALS = True
 
 MEDIA_URL = '/media/'
 MEDIA_ROOT = os.path.join(BASE_DIR, 'media/')
+
+LOGGING = {
+    'version': 1,
+    'disable_existing_loggers': False,
+    'formatters': {
+        'verbose': {
+            'format': '{levelname} {asctime} {module} {process:d} {thread:d} {message}',
+            'style': '{',
+        },
+        'simple': {
+            'format': '{levelname} {message}',
+            'style': '{', # <--- ¡Añade esta línea!
+        },
+    },
+    'handlers': {
+        'console': {
+            'class': 'logging.StreamHandler',
+            'formatter': 'simple', # Puedes cambiar a 'verbose' para más detalle
+        },
+    },
+    'root': {
+        'handlers': ['console'],
+        'level': 'INFO', # Asegúrate de que este nivel sea INFO o DEBUG
+    },
+    'loggers': {
+        'django': {
+            'handlers': ['console'],
+            'level': 'INFO', # O 'DEBUG'
+            'propagate': False,
+        },
+        'users': { # Asegúrate de que tu app 'users' tenga su propio logger configurado
+            'handlers': ['console'],
+            'level': 'INFO', # ¡Importante! Asegúrate que sea INFO o DEBUG
+            'propagate': True, # Permite que se propague al 'root' handler
+        },
+        'rest_framework_simplejwt': { # Opcional: para ver logs de simplejwt
+            'handlers': ['console'],
+            'level': 'INFO',
+            'propagate': False,
+        },
+    }
+}

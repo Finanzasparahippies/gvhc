@@ -33,11 +33,13 @@ class Answer(models.Model):
     template = models.TextField(blank=True, null=True)
     has_steps = models.BooleanField(default=False)  # Indica si la respuesta tiene pasos
     image = CloudinaryField('image', blank=True, null=True)
-    node_type = models.CharField(max_length=50, choices=NODE_TYPES, default='NonresizableNode')
+    node_type = models.CharField(max_length=50, choices=NODE_TYPES, default='NonResizableNode')
     created_at = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)
     relevance = models.IntegerField(default=0)
     related_answers = models.ManyToManyField('self', through='AnswerConnection', symmetrical=False)
+    pos_x = models.FloatField(null=True, blank=True)
+    pos_y = models.FloatField(null=True, blank=True)
 
     def __str__(self):
         return self.title[:50] if self.title else "No text available"
@@ -47,7 +49,9 @@ class Step(models.Model):
     number = models.PositiveIntegerField()  # Campo para el número del paso
     text = models.TextField()               # Campo para el texto del paso
     image = CloudinaryField('image', blank=True, null=True)
-    excel_file = models.FileField(upload_to='steps/excel_files/', blank=True, null=True) 
+    excel_file = models.FileField(upload_to='steps/excel_files/', blank=True, null=True)
+    pos_x = models.FloatField(null=True, blank=True)
+    pos_y = models.FloatField(null=True, blank=True) 
 
 
     class Meta:
@@ -96,6 +100,8 @@ class Faq(models.Model):
         ('Scheduling', 'Scheduling'),
         ('Referrals', 'Referrals'),
         ('Artera', 'Artera'),
+        ('Dental', 'Dental'),
+        ('PACE', 'PACE'),
     ] 
     
     question = models.CharField(max_length=255)

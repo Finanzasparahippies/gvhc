@@ -7,7 +7,7 @@ from .models import Faq, Answer, Step, Category, ResponseType, Event, Slide
 
 @admin.register(Faq)
 class FaqAdmin(admin.ModelAdmin):
-    list_display = ('question', 'response_type', 'queue_type', 'created_at', 'get_answers', 'keywords')
+    list_display = ('id', 'question', 'response_type', 'queue_type', 'created_at', 'get_answers', 'keywords')
     search_fields = ('question', 'keywords')
     filter_horizontal = ('answers',)
 
@@ -17,7 +17,7 @@ class FaqAdmin(admin.ModelAdmin):
 
 @admin.register(Answer)
 class AnswerAdmin(admin.ModelAdmin):
-    list_display = ('title','node_type', 'answer_text', 'relevance', 'display_image', 'template')
+    list_display = ( 'id', 'title','node_type', 'answer_text', 'relevance', 'display_image', 'template')
     search_fields = ('title','answer_text', 'steps')
 
     def display_image(self, obj):
@@ -28,7 +28,7 @@ class AnswerAdmin(admin.ModelAdmin):
 
 @admin.register(Step)
 class StepAdmin(admin.ModelAdmin):
-    list_display = ('number', 'text', 'answer', 'excel_file_preview')
+    list_display = ( 'id', 'number', 'text', 'answer', 'excel_file_preview')
     search_fields = ('text', 'answer')
 
     def excel_file_preview(self, obj):
@@ -61,21 +61,21 @@ class StepAdmin(admin.ModelAdmin):
 
 @admin.register(Category)
 class CategoryAdmin(admin.ModelAdmin):
-    list_display = ('name', 'description')
+    list_display = ( 'id', 'name', 'description')
     search_fields = ('name', 'description')
 
 @admin.register(ResponseType)
 class ResponseTypeAdmin(admin.ModelAdmin):
-    list_display = ('type_name', 'description')
+    list_display = ('id', 'type_name', 'description')
     search_fields = ('type_name', 'description')
 
 @admin.register(Event)
 class EventoAdmin(admin.ModelAdmin):
-    list_display = ('title', 'start_date', 'end_date', 'event_type')
+    list_display = ( 'id', 'title', 'start_date', 'end_date', 'event_type')
     list_filter = ('event_type', 'start_date', 'county')
     search_fields = ('title', 'description', 'address', 'hospital', 'county')
 
 @admin.register(Slide)
 class SlideAdmin(admin.ModelAdmin):
-    list_display = ('faq', 'question', 'left', 'right', 'up', 'down')
+    list_display = ( 'id', 'faq', 'question', 'left', 'right', 'up', 'down')
     search_fields = ('faq', 'question')
