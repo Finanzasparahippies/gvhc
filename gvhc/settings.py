@@ -16,7 +16,22 @@ import cloudinary
 from dotenv import load_dotenv
 from datetime import timedelta
 
-load_dotenv()
+
+BASE_DIR = Path(__file__).resolve().parent.parent
+print(BASE_DIR / '.env')
+
+load_dotenv(dotenv_path=BASE_DIR / '.env') # Si tu .env está en la carpeta gvhc (donde está manage.py)
+
+MODE = os.getenv("MODE", "development").lower()
+
+
+DEBUG = os.getenv('DEBUG', 'False').lower() in ('true', '1', 't')
+
+ALLOWED_HOSTS = os.getenv('ALLOWED_HOSTS').split(',')
+
+print(f"Loading settings in MODE: {MODE}")
+print(f"DEBUG is: {DEBUG}") # Usar la variable DEBUG que ya definiste
+print(f"POSTGRES_HOST is: '{os.getenv('POSTGRES_HOST')}'")
 
 cloudinary.config(
     cloud_name=os.getenv("CLOUD_NAME"),
@@ -27,8 +42,6 @@ cloudinary.config(
 
 
 # Build paths inside the project like this: BASE_DIR / 'subdir'.
-BASE_DIR = Path(__file__).resolve().parent.parent
-
 DEFAULT_FILE_STORAGE = 'cloudinary_storage.storage.MediaCloudinaryStorage'
 # CLOUDINARY_NAME = config("CLOUD_NAME")
 
@@ -38,11 +51,6 @@ DEFAULT_FILE_STORAGE = 'cloudinary_storage.storage.MediaCloudinaryStorage'
 
 # SECURITY WARNING: keep the secret key used in production secret!
 SECRET_KEY = os.getenv('SECRET_KEY')
-
-# SECURITY WARNING: don't run with debug turned on in production!
-DEBUG = os.getenv('DEBUG', 'False').lower() in ('true', '1', 't')
-
-ALLOWED_HOSTS = os.getenv('ALLOWED_HOSTS').split(',')
 
 
 # Application definition
@@ -123,16 +131,10 @@ WSGI_APPLICATION = "gvhc.wsgi.application"
 
 # Database
 # https://docs.djangoproject.com/en/5.1/ref/settings/#databases
-MODE = os.getenv("MODE", default="development")
-POSTGRES_HOST = os.getenv('POSTGRES_HOST')
-print("MODE from .env:", MODE)
-print("MODE from environment (os.environ):", os.environ.get("MODE"))
-print(f"'{POSTGRES_HOST}'")
 
 
-if MODE == "production":
     # Configuración para PostgreSQL en producción
-    DATABASES = {
+DATABASES = {
         "default": {
             'ENGINE': 'django.db.backends.postgresql',
             'NAME': os.getenv('POSTGRES_NAME'),
@@ -143,24 +145,6 @@ if MODE == "production":
         }
 }
 
-else:
-        DATABASES = {
-        "default": {
-            'ENGINE': 'django.db.backends.postgresql',
-            'NAME': os.getenv('POSTGRES_NAME'),
-            'USER': os.getenv('POSTGRES_DB_USER'),
-            'PASSWORD': os.getenv('POSTGRES_PASSWORD'),
-            'HOST': os.getenv('POSTGRES_HOST'),
-            'PORT': os.getenv('POSTGRES_PORT'),             
-        }
-}
-    # Configuración para SQLite en desarrollo
-    # DATABASES = {
-    #     'default': {
-    #         'ENGINE': 'django.db.backends.sqlite3',
-    #         'NAME': BASE_DIR / 'db.sqlite3',
-    #     }
-    # }
 
 # Password validation
 # https://docs.djangoproject.com/en/5.1/ref/settings/#auth-password-validators
@@ -287,45 +271,3 @@ CORS_ALLOW_CREDENTIALS = True
 
 MEDIA_URL = '/media/'
 MEDIA_ROOT = os.path.join(BASE_DIR, 'media/')
-
-LOGGING = {
-    'version': 1,
-    'disable_existing_loggers': False,
-    'formatters': {
-        'verbose': {
-            'format': '{levelname} {asctime} {module} {process:d} {thread:d} {message}',
-            'style': '{',
-        },
-        'simple': {
-            'format': '{levelname} {message}',
-            'style': '{', # <--- ¡Añade esta línea!
-        },
-    },
-    'handlers': {
-        'console': {
-            'class': 'logging.StreamHandler',
-            'formatter': 'simple', # Puedes cambiar a 'verbose' para más detalle
-        },
-    },
-    'root': {
-        'handlers': ['console'],
-        'level': 'INFO', # Asegúrate de que este nivel sea INFO o DEBUG
-    },
-    'loggers': {
-        'django': {
-            'handlers': ['console'],
-            'level': 'INFO', # O 'DEBUG'
-            'propagate': False,
-        },
-        'users': { # Asegúrate de que tu app 'users' tenga su propio logger configurado
-            'handlers': ['console'],
-            'level': 'INFO', # ¡Importante! Asegúrate que sea INFO o DEBUG
-            'propagate': True, # Permite que se propague al 'root' handler
-        },
-        'rest_framework_simplejwt': { # Opcional: para ver logs de simplejwt
-            'handlers': ['console'],
-            'level': 'INFO',
-            'propagate': False,
-        },
-    }
-}

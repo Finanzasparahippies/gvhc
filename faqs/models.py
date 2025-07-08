@@ -11,7 +11,7 @@ class ResponseType(models.Model):
     def __str__(self):
         return self.type_name
 
-class Category(models.Model):
+class Department(models.Model):
     name = models.CharField(max_length=50)
     description = models.TextField(blank=True)
 
@@ -20,15 +20,16 @@ class Category(models.Model):
 
 class Answer(models.Model):
     NODE_TYPES = [
-        ('CustomResizableNode', 'Custom Resizable Node'),
-        ('NonResizableNode', 'Non Resizable Node'),
-        ('slidesToElements', 'slides To Elements'),
-        ('TooltipNode', 'Tool tip Node'),
-        ('AnnotationNode', 'Annotation Node'),
-        ('NotesNode', 'Note Node'),
-        ('TemplateNode', 'Template Node'),
+        ('CustomResizableNode', 'Custom Resizable Node'), #images
+        ('NonResizableNode', 'Non Resizable Node'), #scripts or protocols
+        ('slidesToElements', 'slides To Elements'), #path of responses 
+        ('TooltipNode', 'Tool tip Node'), #tips fot newbies
+        ('AnnotationNode', 'Annotation Node'), #Node just to add things and they perserve on time
+        ('NotesNode', 'Note Node'), #Node to take notes from an appt and save it in folders.
+        ('TemplateNode', 'Template Node'), #quick answers to work
     ]
     title = models.CharField(max_length=255, blank=True, null=True)
+    keywords = ArrayField(models.CharField(max_length=50), blank=True, default=list)  # Lista de palabras clave
     answer_text = models.TextField(blank=True, null=True)
     template = models.TextField(blank=True, null=True)
     has_steps = models.BooleanField(default=False)  # Indica si la respuesta tiene pasos
@@ -46,6 +47,7 @@ class Answer(models.Model):
 
 class Step(models.Model):
     answer = models.ForeignKey(Answer, related_name='steps', on_delete=models.CASCADE)
+    keywords = ArrayField(models.CharField(max_length=50), blank=True, default=list)  # Lista de palabras clave
     number = models.PositiveIntegerField()  # Campo para el número del paso
     text = models.TextField()               # Campo para el texto del paso
     image = CloudinaryField('image', blank=True, null=True)
@@ -77,7 +79,7 @@ class Event(models.Model):
         ('PRIMORDIAL', 'Primordial'),
         ('NORMAL', 'Normal'),
     ]
-
+    keywords = ArrayField(models.CharField(max_length=50), blank=True, default=list)  # Lista de palabras clave
     title = models.CharField(max_length=255)
     description = models.TextField(blank=True)
     requirements = models.TextField(blank=True)
@@ -95,21 +97,20 @@ class Event(models.Model):
         return self.title
 
 class Faq(models.Model):
-    QUEUE_TYPES = [
-        ('MR', 'Medical Records'),
-        ('Scheduling', 'Scheduling'),
-        ('Referrals', 'Referrals'),
-        ('Artera', 'Artera'),
-        ('Dental', 'Dental'),
-        ('PACE', 'PACE'),
+    CATEGORIES = [
+        ('Protocols', 'Protocols'),
+        ('Tips', 'Tips'),
+        ('Payrolls', 'Payrolls'),
+        ('Escalations', 'Escalations'),
+        ('FeedBack', 'FeedBack'),
     ] 
     
     question = models.CharField(max_length=255)
     response_type = models.ForeignKey(ResponseType, on_delete=models.CASCADE, default=1)
-    queue_type = models.CharField(max_length=20, choices=QUEUE_TYPES, default='Scheduling')
-    keywords = ArrayField(models.CharField(max_length=50), blank=True)  # Lista de palabras clave
+    category = models.CharField(max_length=20, choices=CATEGORIES, default='Protocols')
+    keywords = ArrayField(models.CharField(max_length=50), blank=True, default=list)  # Lista de palabras clave
     answers = models.ManyToManyField(Answer, related_name='faqs')
-    category = models.ForeignKey(Category, on_delete=models.SET_NULL, null=True, blank=True)
+    department = models.ForeignKey(Department, on_delete=models.SET_NULL, null=True, blank=True)
     created_at = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)
     events = models.ManyToManyField(Event, blank=True, related_name='events')

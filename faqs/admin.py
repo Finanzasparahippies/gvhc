@@ -1,13 +1,13 @@
 from django.contrib import admin
 from openpyxl import load_workbook
 from django.utils.html import format_html
-from .models import Faq, Answer, Step, Category, ResponseType, Event, Slide
+from .models import Faq, Answer, Step, Department, ResponseType, Event, Slide
 
 # Register your models here.
 
 @admin.register(Faq)
 class FaqAdmin(admin.ModelAdmin):
-    list_display = ('id', 'question', 'response_type', 'queue_type', 'created_at', 'get_answers', 'keywords')
+    list_display = ('id', 'question', 'response_type', 'category', 'created_at', 'get_answers', 'keywords')
     search_fields = ('question', 'keywords')
     filter_horizontal = ('answers',)
 
@@ -59,7 +59,7 @@ class StepAdmin(admin.ModelAdmin):
 
         super().save_model(request, obj, form, change)
 
-@admin.register(Category)
+@admin.register(Department)
 class CategoryAdmin(admin.ModelAdmin):
     list_display = ( 'id', 'name', 'description')
     search_fields = ('name', 'description')

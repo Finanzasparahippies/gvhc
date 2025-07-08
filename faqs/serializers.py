@@ -1,8 +1,12 @@
 from django.db import models
 from django.conf import settings
 from rest_framework import serializers
-from .models import Answer, AnswerConnection, Faq, Event, Step, Slide
+from .models import Answer, AnswerConnection, Faq, Event, Step, Slide, Department
 
+class DepartmentSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = Department
+        fields = ['id', 'name'] # Puedes añadir 'description' si es útil
 
 class AnswerConnectionSerializer(serializers.ModelSerializer):
     class Meta:
@@ -66,7 +70,7 @@ class FaqSerializer(serializers.ModelSerializer):
     popularity = serializers.SerializerMethodField()
     response_type = serializers.SerializerMethodField()  
     category = serializers.SerializerMethodField()
-    queue_type = serializers.SerializerMethodField()
+    department = serializers.SerializerMethodField()
 
     class Meta:
         model = Faq
@@ -79,12 +83,12 @@ class FaqSerializer(serializers.ModelSerializer):
     def get_response_type(self, obj):
         return obj.response_type.type_name if obj.response_type else 'unknown'
     
-    def get_category(self, obj):
-        return obj.category.name if obj.category else 'unknown'
+    def get_department(self, obj):
+        return obj.department.name if obj.department else 'unknown'
 
-    def get_queue_type(self, obj):
-        print(f"Queue Type: {obj.queue_type}")  # Para ver si se está llamando correctamente
-        return obj.get_queue_type_display()
+    def get_category(self, obj):
+        print(f"Queue Type: {obj.category}")  # Para ver si se está llamando correctamente
+        return obj.get_category_display()
 
     
 class EventSerializer(serializers.ModelSerializer):

@@ -16,25 +16,25 @@ from .serializers import MyTokenObtainPairSerializer
 logger = logging.getLogger(__name__)
 
 
-# class LoginView(APIView):
-#     def post(self, request):
-#         username = request.data.get('username')
-#         password = request.data.get('password')
+class LoginView(APIView):
+    def post(self, request):
+        username = request.data.get('username')
+        password = request.data.get('password')
 
-#         logger.info(username, password)
+        logger.info(username, password)
 
-#         user = authenticate(request, username=username, password=password)
-#         # if not user:
-#         #     return Response({"error": "Invalid credentials"}, status=401)
+        user = authenticate(request, username=username, password=password)
+        # if not user:
+        #     return Response({"error": "Invalid credentials"}, status=401)
 
-#         refresh = RefreshToken.for_user(user)
-#         user_data = UserSerializer(user).data
+        refresh = RefreshToken.for_user(user)
+        user_data = UserSerializer(user).data
 
-#         return Response({
-#             'refresh': str(refresh),
-#             'access': str(refresh.access_token),
-#             'user': user_data
-#         })
+        return Response({
+            'refresh': str(refresh),
+            'access': str(refresh.access_token),
+            'user': user_data
+        })
 
 class RegisterView(APIView):
     def post(self, request):

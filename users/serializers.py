@@ -14,29 +14,30 @@ class UserSerializer(serializers.ModelSerializer):
 
 class MyTokenObtainPairSerializer(TokenObtainPairSerializer):
     def validate(self, attrs):
+        # --- La línea del error estaba aquí ---
         logger.info("--- MyTokenObtainPairSerializer.validate started ---")
+        # Esta es la forma correcta de imprimir para depurar:
         logger.info(f"Received attributes for validation: {attrs}")
-        print({attrs})
 
-        username = attrs.get("username")
-        password = attrs.get("password")
+        # Ejecuta la validación original (comprueba usuario y contraseña)
+        data = super().validate(attrs)
 
-        user = authenticate(username=username, password=password)
+        # Ahora, añade los datos de tu usuario a la respuesta
+        # self.user es el objeto de usuario que se autenticó correctamente
+        user_data = UserSerializer(self.user).data
+        data['user'] = user_data
 
-        if user is None:
-            logger.warning("⚠️ Autenticación fallida en MyTokenObtainPairSerializer")
-            raise serializers.ValidationError("Credenciales inválidas")
+        # La respuesta ahora contendrá: refresh, access, y user
+        return data
 
-        # Asigna self.user explícitamente
-        self.user = user
+    @classmethod
+    def get_token(cls, user):
+        # Esta función añade datos DENTRO del token JWT (payload) si lo necesitas.
+        # Por ejemplo, para añadir el username al payload del token.
+        token = super().get_token(user)
 
-        validated_data  = super().validate(attrs)  # Esto generará access y refresh token
-        validated_data.update({
-            'user': UserSerializer(user).data
-        })
-        # Incluye los datos del usuario serializado
+        # Añadir campos personalizados al payload del token
+        token['username'] = user.username
+        # ... puedes añadir más campos aquí
 
-        logger.info(f"Final response data: {validated_data}")
-        logger.info("--- MyTokenObtainPairSerializer.validate finished ---")
-
-        return validated_data
+        return token
