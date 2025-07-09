@@ -28,10 +28,12 @@ def search_faqs(request):
         faqs = Faq.objects.filter(
             # Q(question__icontains=query) |
             # Q(keywords__icontains=query) |
-            Q(answers__answer_text__icontains=query) 
+            Q(answers__title__icontains=query) | # Considera añadir esto si el título de Answer es relevante para la búsqueda
+            Q(answers__answer_text__icontains=query) | 
+            Q(answers__keywords__icontains=query) 
         ).distinct()
 
-        serializer = FaqSerializer(faqs, many=True)
+        serializer = FaqSerializer(faqs, many=True, context={'query': query})
 
         pprint(serializer.data)       
         

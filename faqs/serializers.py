@@ -2,6 +2,8 @@ from django.db import models
 from django.conf import settings
 from rest_framework import serializers
 from .models import Answer, AnswerConnection, Faq, Event, Step, Slide, Department
+from django.db.models import Q # Importa Q para las condiciones de filtrado
+
 
 class DepartmentSerializer(serializers.ModelSerializer):
     class Meta:
@@ -65,7 +67,7 @@ class SlideSerializer(serializers.ModelSerializer):
         fields = ['id', 'faq', 'question', 'left', 'right', 'up', 'down']
 
 class FaqSerializer(serializers.ModelSerializer):
-    answers = AnswerSerializer(many=True)
+    answers = serializers.SerializerMethodField() 
     slides = SlideSerializer(many=True, read_only=True)
     popularity = serializers.SerializerMethodField()
     response_type = serializers.SerializerMethodField()  
@@ -89,7 +91,27 @@ class FaqSerializer(serializers.ModelSerializer):
     def get_category(self, obj):
         print(f"Queue Type: {obj.category}")  # Para ver si se está llamando correctamente
         return obj.get_category_display()
-
+    def get_answers(self, obj):
+        query = self.context.get('query', '').strip()
+        
+        if query:
+            # Filtra las Answers de esta FAQ que coinciden con el query
+            # Asegúrate de que `keywords` sea un campo en tu modelo Answer que puedas buscar con `icontains`
+            # (Si keywords es un ArrayField, icontains funciona para buscar un valor en el array)
+            filtered_answers = obj.answers.filter(
+                Q(answer_text__icontains=query) |
+                Q(keywords__icontains=query) |
+                Q(title__icontains=query) # También puedes considerar buscar en el título de la Answer
+            ).distinct() # Usa distinct() por si una Answer tiene múltiples coincidencias con el mismo query
+            return AnswerSerializer(filtered_answers, many=True).data
+        else:
+            # Si no hay query en el contexto, significa que esta FAQ no se encontró por una búsqueda de Answers
+            # (o el endpoint no usó un query). En este caso, podemos devolver todas las Answers
+            # o una lista vacía, dependiendo de tu lógica de negocio.
+            # Para el contexto de 'search_faqs', una FAQ solo llega aquí si ya hubo una coincidencia.
+            # Sin embargo, si FaqSerializer se usa en otro lugar sin un query,
+            # esto aseguraría que se serialicen todas las respuestas asociadas a la FAQ.
+            return AnswerSerializer(obj.answers.all(), many=True).data
     
 class EventSerializer(serializers.ModelSerializer):
     class Meta:
