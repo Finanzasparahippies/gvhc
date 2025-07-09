@@ -9,27 +9,39 @@ https://docs.djangoproject.com/en/5.1/topics/settings/
 For the full list of settings and their values, see
 https://docs.djangoproject.com/en/5.1/ref/settings/
 """
-from dotenv import load_dotenv  # Importa dotenv para cargar variables
-from decouple import config
+import os  
+import psycopg2
 from pathlib import Path
-import cloudinary
-import os
+import cloudinary 
+from dotenv import load_dotenv
 from datetime import timedelta
 
 
-load_dotenv()  # Carga las variables desde .env 
+BASE_DIR = Path(__file__).resolve().parent.parent
+print(BASE_DIR / '.env')
+
+load_dotenv(dotenv_path=BASE_DIR / '.env') # Si tu .env está en la carpeta gvhc (donde está manage.py)
+
+MODE = os.getenv("MODE", "development").lower()
+
+
+DEBUG = os.getenv('DEBUG', 'False').lower() in ('true', '1', 't')
+
+ALLOWED_HOSTS = os.getenv('ALLOWED_HOSTS').split(',')
+
+print(f"Loading settings in MODE: {MODE}")
+print(f"DEBUG is: {DEBUG}") # Usar la variable DEBUG que ya definiste
+print(f"POSTGRES_HOST is: '{os.getenv('POSTGRES_HOST')}'")
 
 cloudinary.config(
-    cloud_name=config("CLOUD_NAME"),
-    api_key=config("CLOUDINARY_API_KEY"),
-    api_secret=config("CLOUDINARY_API_SECRET"),
+    cloud_name=os.getenv("CLOUD_NAME"),
+    api_key=os.getenv("CLOUDINARY_API_KEY"),
+    api_secret=os.getenv("CLOUDINARY_API_SECRET"),
     secure=True
     )
 
 
 # Build paths inside the project like this: BASE_DIR / 'subdir'.
-BASE_DIR = Path(__file__).resolve().parent.parent
-
 DEFAULT_FILE_STORAGE = 'cloudinary_storage.storage.MediaCloudinaryStorage'
 # CLOUDINARY_NAME = config("CLOUD_NAME")
 
@@ -38,12 +50,7 @@ DEFAULT_FILE_STORAGE = 'cloudinary_storage.storage.MediaCloudinaryStorage'
 # See https://docs.djangoproject.com/en/5.1/howto/deployment/checklist/
 
 # SECURITY WARNING: keep the secret key used in production secret!
-SECRET_KEY = config('SECRET_KEY')
-
-# SECURITY WARNING: don't run with debug turned on in production!
-DEBUG = config('DEBUG', default=False, cast=bool)
-
-ALLOWED_HOSTS = config('ALLOWED_HOSTS').split(',')
+SECRET_KEY = os.getenv('SECRET_KEY')
 
 
 # Application definition
@@ -59,6 +66,8 @@ INSTALLED_APPS = [
     "users",
     "testing",
     "queues",
+    "reports",
+    "dashboards",
     #third party
     "rest_framework",
     "corsheaders",
@@ -89,6 +98,7 @@ SIMPLE_JWT = {
 }
 
 MIDDLEWARE = [
+    "corsheaders.middleware.CorsMiddleware",
     "django.middleware.security.SecurityMiddleware",
     "whitenoise.middleware.WhiteNoiseMiddleware",  # Agregar aquí
     "django.contrib.sessions.middleware.SessionMiddleware",
@@ -97,7 +107,6 @@ MIDDLEWARE = [
     "django.contrib.auth.middleware.AuthenticationMiddleware",
     "django.contrib.messages.middleware.MessageMiddleware",
     "django.middleware.clickjacking.XFrameOptionsMiddleware",
-    "corsheaders.middleware.CorsMiddleware",
 ]
 
 ROOT_URLCONF = "gvhc.urls"
@@ -122,30 +131,20 @@ WSGI_APPLICATION = "gvhc.wsgi.application"
 
 # Database
 # https://docs.djangoproject.com/en/5.1/ref/settings/#databases
-MODE = config("MODE", default="development")
-print("MODE from .env:", MODE)
 
-if MODE == "production":
+
     # Configuración para PostgreSQL en producción
-    DATABASES = {
+DATABASES = {
         "default": {
             'ENGINE': 'django.db.backends.postgresql',
-            'NAME': config('POSTGRES_NAME'),
-            'USER': config('POSTGRES_DB_USER'),
-            'PASSWORD': config('POSTGRES_PASSWORD'),
-            'HOST': config('POSTGRES_HOST'),
-            'PORT': config('POSTGRES_PORT'),             
+            'NAME': os.getenv('POSTGRES_NAME'),
+            'USER': os.getenv('POSTGRES_DB_USER'),
+            'PASSWORD': os.getenv('POSTGRES_PASSWORD'),
+            'HOST': os.getenv('POSTGRES_HOST'),
+            'PORT': os.getenv('POSTGRES_PORT'),             
         }
 }
 
-else:
-    # Configuración para SQLite en desarrollo
-    DATABASES = {
-        'default': {
-            'ENGINE': 'django.db.backends.sqlite3',
-            'NAME': BASE_DIR / 'db.sqlite3',
-        }
-    }
 
 # Password validation
 # https://docs.djangoproject.com/en/5.1/ref/settings/#auth-password-validators
@@ -168,9 +167,52 @@ AUTH_PASSWORD_VALIDATORS = [
     },
 ]
 
+AUTHENTICATION_BACKENDS = [
+    'django.contrib.auth.backends.ModelBackend',
+    # Add other backends if you use them, e.g., 'allauth.account.auth_backends.AuthenticationBackend'
+]
+
 AUTH_USER_MODEL = 'users.User'
 
-
+LOGGING = {
+    'version': 1,
+    'disable_existing_loggers': False,
+    'formatters': {
+        'verbose': {
+            'format': '{levelname} {asctime} {module} {process:d} {thread:d} {message}',
+            'style': '{',
+        },
+        'simple': {
+            'format': '{levelname} {message}',
+            'style': '{',
+        },
+    },
+    'handlers': {
+        'console': {
+            'level': 'DEBUG', # Cambia a INFO si solo quieres ver los INFO y superiores
+            'class': 'logging.StreamHandler',
+            'formatter': 'simple', # Puedes usar 'verbose' para más detalles
+        },
+    },
+    'loggers': {
+        'django': { # Logs de Django
+            'handlers': ['console'],
+            'level': 'INFO', # O 'DEBUG' si quieres ver más logs internos de Django
+            'propagate': False,
+        },
+        '': { # Este es el logger por defecto para tu código de aplicación (tu views.py)
+            'handlers': ['console'],
+            'level': 'DEBUG', # ¡IMPORTANTE! Asegúrate de que esté en DEBUG o INFO
+            'propagate': False,
+        },
+        # Si quieres configurar específicamente tu logger de views.py:
+        # 'tu_app_nombre.views': { # Reemplaza 'tu_app_nombre' con el nombre real de tu app
+        #    'handlers': ['console'],
+        #    'level': 'DEBUG',
+        #    'propagate': False,
+        # },
+    }
+}
 # Internationalization
 # https://docs.djangoproject.com/en/5.1/topics/i18n/
 
@@ -202,17 +244,22 @@ KEYWORDS = ["Golden Valley Health Center", "ER", "two months", "PCP", "primary c
 CORS_ALLOWED_ORIGINS = [
     "https://gvhc.netlify.app",  # URL del frontend
     "http://localhost:5173",  # Para pruebas locales
-    "https://gvhc-backend.onrender.com",
+    "http://localhost:8000",
+    "https://api-current.iz1.sharpen.cx",
 ]
 CORS_ALLOWED_ORIGIN_REGEXES = [
     r"^https://.*\.github\.dev$",
 ]
 
 CSRF_TRUSTED_ORIGINS = [
+    "http://localhost:8000",
     "http://localhost:5173",
     "https://gvhc.netlify.app",  # URL del frontend
     "https://gvhc-backend.onrender.com",
+    "https://api-current.iz1.sharpen.cx",
 ]
+
+CSRF_COOKIE_NAME = 'csrftoken'  # Asegúrate de que este valor sea el correcto
 
 CORS_ALLOW_HEADERS = [
     "content-type",
@@ -220,3 +267,7 @@ CORS_ALLOW_HEADERS = [
     "x-requested-with",
 ]
 
+CORS_ALLOW_CREDENTIALS = True
+
+MEDIA_URL = '/media/'
+MEDIA_ROOT = os.path.join(BASE_DIR, 'media/')

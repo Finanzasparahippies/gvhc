@@ -20,9 +20,8 @@ from django.conf import settings
 from django.contrib import admin
 from django.urls import path, include
 from django.conf.urls.static import static
-from users.views import ProtectedUserView
+from users.views import MyTokenObtainPairView, ProtectedUserView # <-- Aquí está el cambio clave si no lo tienes así
 from rest_framework_simplejwt.views import (
-    TokenObtainPairView,
     TokenRefreshView,
     TokenVerifyView
 )
@@ -34,18 +33,22 @@ def root_view(request):
             "tokens": "/api/token/",
             "users": "/api/",
             "answers": "/api/answers/",
-            "grammar": "/api/grammar/"
+            "grammar": "/api/grammar/",
+            "reports": "/api/reports/",
+            "dashboards": "/api/dashboards"
         }
     })
 
 urlpatterns = [
     path('', root_view, name='root'), 
     path('protected/', ProtectedUserView.as_view(), name='protected'),
-    path('api/token/', TokenObtainPairView.as_view(), name='token_obtain_pair'),
+    path('api/token/', MyTokenObtainPairView.as_view(), name='token_obtain_pair'),
     path('api/token/refresh/', TokenRefreshView.as_view(), name='token_refresh'),
     path('api/token/verify/', TokenVerifyView.as_view(), name='token_verify'),
     path("admin/", admin.site.urls),
     path('api/', include('users.urls')),
-    path('api/answers/', include('faqs.urls') ),
+    path('api/', include('faqs.urls') ),
     path('api/grammar/', include('calling_monitor.urls')),
+    path('api/reports/', include('reports.urls')),
+    path('api/dashboards/', include('dashboards.urls')),
 ] + static(settings.MEDIA_URL, document_root=settings.MEDIA_ROOT)
