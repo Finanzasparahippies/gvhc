@@ -8,6 +8,7 @@ router.register(r'faqs', FaqViewSet)
 router.register(r'events', EventViewSet)
 
 urlpatterns = [
+    path('search/', search_faqs, name='faq-search'),
     path('departments/', get_departments, name='departments-list'), # Nuevo endpoint
     *router.urls,
 ]

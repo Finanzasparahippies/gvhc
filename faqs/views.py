@@ -38,9 +38,6 @@ def search_faqs(request):
         return Response({'results': serializer.data}, status=200)
 
     except Exception as e:
-        return Response({'error': str(e)}, status=500)
-
-    except Exception as e:
         # Captura errores y devuélvelos en la respuesta
         return Response(
             {'error': str(e)},
