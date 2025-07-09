@@ -2,18 +2,9 @@
 from rest_framework.views import APIView
 from rest_framework.response import Response
 from rest_framework_simplejwt.tokens import RefreshToken
-<<<<<<< HEAD
 from .models import User # Renombra si tienes conflicto con django.contrib.auth.models.User
 import logging
-
 # from django.contrib.auth.models import User 
-=======
-from .models import User as UserOne # Renombra si tienes conflicto con django.contrib.auth.models.User
-import logging
-
-# from django.http import JsonResponse
-from django.contrib.auth.models import User 
->>>>>>> main
 from django.contrib.auth import authenticate
 from rest_framework.permissions import IsAuthenticated
 from .serializers import UserSerializer
