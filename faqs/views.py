@@ -26,9 +26,9 @@ def search_faqs(request):
 
     try:
         faqs = Faq.objects.filter(
-            Q(question__icontains=query) |
-            Q(answers__answer_text__icontains=query) |
-            Q(keywords__icontains=query)
+            # Q(question__icontains=query) |
+            # Q(keywords__icontains=query) |
+            Q(answers__answer_text__icontains=query) 
         ).distinct()
 
         serializer = FaqSerializer(faqs, many=True)
@@ -36,9 +36,6 @@ def search_faqs(request):
         pprint(serializer.data)       
         
         return Response({'results': serializer.data}, status=200)
-
-    except Exception as e:
-        return Response({'error': str(e)}, status=500)
 
     except Exception as e:
         # Captura errores y devuélvelos en la respuesta

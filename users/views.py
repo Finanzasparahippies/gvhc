@@ -2,10 +2,18 @@
 from rest_framework.views import APIView
 from rest_framework.response import Response
 from rest_framework_simplejwt.tokens import RefreshToken
+<<<<<<< HEAD
 from .models import User # Renombra si tienes conflicto con django.contrib.auth.models.User
 import logging
 
 # from django.contrib.auth.models import User 
+=======
+from .models import User as UserOne # Renombra si tienes conflicto con django.contrib.auth.models.User
+import logging
+
+# from django.http import JsonResponse
+from django.contrib.auth.models import User 
+>>>>>>> main
 from django.contrib.auth import authenticate
 from rest_framework.permissions import IsAuthenticated
 from .serializers import UserSerializer
@@ -41,10 +49,10 @@ class RegisterView(APIView):
         username = request.data.get('username')
         password = request.data.get('password')
 
-        if User.objects.filter(username=username).exists():
+        if UserOne.objects.filter(username=username).exists():
             return Response({"error": "User already exists"}, status=400)
 
-        user = User.objects.create_user(username=username, password=password)
+        user = UserOne.objects.create_user(username=username, password=password)
         return Response({"message": "User created successfully"})
 
 class ProtectedUserView(APIView):
@@ -53,7 +61,7 @@ class ProtectedUserView(APIView):
     def get(self, request):
         serializer = UserSerializer(request.user)
         return Response(serializer.data)
-    
+
 def ping(request):
     return JsonResponse({'status': 'ok'})
 
