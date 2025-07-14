@@ -1,6 +1,8 @@
 import requests
 import json
 import os
+from dotenv import load_dotenv
+from pathlib import Path
 import logging
 import re
 from django.http import StreamingHttpResponse, JsonResponse, HttpResponse
@@ -12,6 +14,10 @@ from datetime import datetime # Importar datetime
 import pytz
 from urllib.parse import urlparse, parse_qs
 
+BASE_DIR = Path(__file__).resolve().parent.parent
+print(BASE_DIR / '.env')
+
+load_dotenv(dotenv_path=BASE_DIR / '.env', override=True) 
 # Create your views here.
 # logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
@@ -19,8 +25,7 @@ logger = logging.getLogger(__name__)
 HERMOSILLO_TZ = pytz.timezone('America/Hermosillo') 
 UTC_TZ = pytz.utc # Zona horaria UTC para localizar los datetimes
 
-SHARPEN_API_BASE_URL = "https://api-current.iz1.sharpen.cx/"
-SHARPEN_AWS_S3_API_BASE_URL = "https://api.fathomvoice.com/" 
+SHARPEN_API_BASE_URL = os.getenv('SHARPEN_API_BASE_URL')
 
 def get_sharpen_audio_url(mixmon_file_name: str, recording_key: str) -> str | None:
     """

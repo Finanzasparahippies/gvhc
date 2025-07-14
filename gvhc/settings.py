@@ -20,7 +20,7 @@ from datetime import timedelta
 BASE_DIR = Path(__file__).resolve().parent.parent
 print(BASE_DIR / '.env')
 
-load_dotenv(dotenv_path=BASE_DIR / '.env') # Si tu .env está en la carpeta gvhc (donde está manage.py)
+load_dotenv(dotenv_path=BASE_DIR / '.env', override=True) 
 
 MODE = os.getenv("MODE", "development").lower()
 
@@ -32,6 +32,7 @@ ALLOWED_HOSTS = os.getenv('ALLOWED_HOSTS').split(',')
 print(f"Loading settings in MODE: {MODE}")
 print(f"DEBUG is: {DEBUG}") # Usar la variable DEBUG que ya definiste
 print(f"POSTGRES_HOST is: '{os.getenv('POSTGRES_HOST')}'")
+print(f"POSTGRES_USER is: '{os.getenv('POSTGRES_DB_USER')}'")
 
 cloudinary.config(
     cloud_name=os.getenv("CLOUD_NAME"),
