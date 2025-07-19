@@ -2,15 +2,22 @@
 from django.contrib.auth import authenticate
 from rest_framework import serializers
 from .models import User
+from queues.models import Queue
 from rest_framework_simplejwt.serializers import TokenObtainPairSerializer
 import logging
 
 logger = logging.getLogger(__name__)
 
+class QueueSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = Queue
+        fields = ['id', 'name']  # o los campos que necesites
+
 class UserSerializer(serializers.ModelSerializer):
+    queues = QueueSerializer(many=True, read_only=True)
     class Meta:
         model = User
-        fields = ['id', 'username', 'role', 'email', 'first_name', 'last_name']
+        fields = ['id', 'username', 'role', 'email', 'first_name', 'last_name', 'queues']
 
 class MyTokenObtainPairSerializer(TokenObtainPairSerializer):
     def validate(self, attrs):
