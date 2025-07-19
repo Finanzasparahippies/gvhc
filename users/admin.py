@@ -9,6 +9,7 @@ class CustomUserAdmin(UserAdmin):
     form = CustomUserChangeForm
     model = User
     list_display = ('username', 'email', 'first_name', 'last_name', 'role', 'is_staff')
+    filter_horizontal = ('queues',)
     fieldsets = (
         (None, {'fields': ('username', 'password')}),
         ('Personal Info', {'fields': ('first_name', 'last_name', 'email', 'extension', 'role', 'queues')}),
@@ -21,5 +22,7 @@ class CustomUserAdmin(UserAdmin):
             'fields': ('username', 'password1', 'password2', 'role', 'first_name', 'last_name', 'email', 'extension', 'queues', 'is_staff', 'is_active')}
         ),
     )
+
+
 
 admin.site.register(User, CustomUserAdmin)
