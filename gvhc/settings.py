@@ -69,6 +69,8 @@ INSTALLED_APPS = [
     "queues",
     "reports",
     "dashboards",
+    "websocket_app",
+    "channels",
     #third party
     "rest_framework",
     "corsheaders",
@@ -76,6 +78,8 @@ INSTALLED_APPS = [
     "cloudinary",
     "cloudinary_storage",
 ]
+
+ASGI_APPLICATION = "gvhc.asgi.application"
 
 REST_FRAMEWORK = {
     'DEFAULT_AUTHENTICATION_CLASSES': (
@@ -254,6 +258,7 @@ CORS_ALLOWED_ORIGIN_REGEXES = [
 
 CSRF_TRUSTED_ORIGINS = [
     "http://localhost:8000",
+    "http://localhost:8001",
     "http://localhost:5173",
     "https://gvhc.netlify.app",  # URL del frontend
     "https://gvhc-backend.onrender.com",
