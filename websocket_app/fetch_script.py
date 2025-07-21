@@ -6,7 +6,7 @@ import json
 # Use relative import (single dot for siblings in the same package)
 from .utils import broadcast_new_data
 
-DJANGO_PROXY_URL = "http://localhost:8000/api/dashboards/proxy/generic/" 
+DJANGO_PROXY_URL = "https://gvhc-backend.onrender.com/api/dashboards/proxy/generic/" 
 
 def fetch_calls_from_api():
     # ... (rest of the function, no changes here) ...
