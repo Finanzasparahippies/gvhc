@@ -256,14 +256,16 @@ CORS_ALLOWED_ORIGIN_REGEXES = [
     r"^https://.*\.github\.dev$",
 ]
 
-CSRF_TRUSTED_ORIGINS = [
-    "http://localhost:8000",
-    "http://localhost:8001",
-    "http://localhost:5173",
-    "https://gvhc.netlify.app",  # URL del frontend
-    "https://gvhc-backend.onrender.com",
-    "https://api-current.iz1.sharpen.cx",
-]
+# CSRF_TRUSTED_ORIGINS = [
+#     "http://localhost:8000",
+#     "http://localhost:8001",
+#     "http://localhost:5173",
+#     "https://gvhc.netlify.app",  # URL del frontend
+#     "https://gvhc-backend.onrender.com",
+#     "https://api-current.iz1.sharpen.cx",
+# ]
+
+CORS_ALLOW_ALL_ORIGINS = True
 
 CSRF_COOKIE_NAME = 'csrftoken'  # Asegúrate de que este valor sea el correcto
 
@@ -277,3 +279,9 @@ CORS_ALLOW_CREDENTIALS = True
 
 MEDIA_URL = '/media/'
 MEDIA_ROOT = os.path.join(BASE_DIR, 'media/')
+
+CHANNEL_LAYERS = {
+    'default': {
+        'BACKEND': 'channels.layers.InMemoryChannelLayer'
+    }
+}
