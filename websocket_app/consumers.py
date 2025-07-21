@@ -1,4 +1,3 @@
-# consumers.py
 from channels.generic.websocket import AsyncWebsocketConsumer
 import json
 from websocket_app.fetch_script import fetch_calls_from_api  # Ajusta el import
