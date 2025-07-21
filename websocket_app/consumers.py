@@ -3,7 +3,7 @@
 from channels.generic.websocket import AsyncWebsocketConsumer
 import json
 
-class YourConsumer(AsyncWebsocketConsumer):
+class MyConsumer(AsyncWebsocketConsumer):
     async def connect(self):
         await self.accept()
         await self.send(text_data=json.dumps({"message": "WebSocket conectado"}))
