@@ -254,6 +254,7 @@ CORS_ALLOWED_ORIGINS = [
 ]
 CORS_ALLOWED_ORIGIN_REGEXES = [
     r"^https://.*\.github\.dev$",
+    r"^https://gvhc-backend\.onrender\.com$", # Añade esto si no está
 ]
 
 CSRF_TRUSTED_ORIGINS = [
