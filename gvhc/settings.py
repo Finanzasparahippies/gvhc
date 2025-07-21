@@ -27,7 +27,20 @@ MODE = os.getenv("MODE", "development").lower()
 
 DEBUG = os.getenv('DEBUG', 'False').lower() in ('true', '1', 't')
 
-ALLOWED_HOSTS = os.getenv('ALLOWED_HOSTS').split(',')
+ALLOWED_HOSTS_ENV = os.getenv('ALLOWED_HOSTS').split(',')
+
+ALLOWED_HOSTS = [host.strip() for host in ALLOWED_HOSTS_ENV if host.strip()] # Limpiar espacios y vacíos
+
+# Añadir explícitamente los dominios de Render y Netlify
+ALLOWED_HOSTS.extend([
+    'gvhc-backend.onrender.com',
+    'gvhc.netlify.app',
+    'localhost', # Para desarrollo local
+    '127.0.0.1', # Para desarrollo local
+])
+
+# Eliminar duplicados si los hay
+ALLOWED_HOSTS = list(set(ALLOWED_HOSTS))
 
 print(f"Loading settings in MODE: {MODE}")
 print(f"DEBUG is: {DEBUG}") # Usar la variable DEBUG que ya definiste
@@ -210,12 +223,17 @@ LOGGING = {
             'level': 'DEBUG', # ¡IMPORTANTE! Asegúrate de que esté en DEBUG o INFO
             'propagate': False,
         },
-        # Si quieres configurar específicamente tu logger de views.py:
-        # 'tu_app_nombre.views': { # Reemplaza 'tu_app_nombre' con el nombre real de tu app
-        #    'handlers': ['console'],
-        #    'level': 'DEBUG',
-        #    'propagate': False,
-        # },
+        'channels': {
+            'handlers': ['console'],
+            'level': 'DEBUG', # Cambia a INFO en producción si hay demasiados logs
+            'propagate': False,
+        },
+        # Añadir logger para tu app websocket_app
+        'websocket_app': {
+            'handlers': ['console'],
+            'level': 'DEBUG', # Asegúrate de que los logs de tu consumer se vean
+            'propagate': False,
+        },
     }
 }
 # Internationalization
@@ -255,6 +273,7 @@ CORS_ALLOWED_ORIGINS = [
 CORS_ALLOWED_ORIGIN_REGEXES = [
     r"^https://.*\.github\.dev$",
     r"^https://gvhc-backend\.onrender\.com$", # Añade esto si no está
+    r"^https://gvhc\.netlify\.app$", # Añade esto para tu frontend Netlify
 ]
 
 CSRF_TRUSTED_ORIGINS = [
@@ -285,7 +304,7 @@ CHANNEL_LAYERS = {
     'default': {
         'BACKEND': 'channels_redis.pubsub.RedisChannelLayer',
         'CONFIG': {
-            "hosts": [os.environ.get('REDIS_URL')],
+            "hosts": [os.environ.get('REDIS_URL', 'redis://localhost:6379/')],
         },
     },
 }
