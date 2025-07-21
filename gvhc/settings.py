@@ -282,6 +282,9 @@ MEDIA_ROOT = os.path.join(BASE_DIR, 'media/')
 
 CHANNEL_LAYERS = {
     'default': {
-        'BACKEND': 'channels.layers.InMemoryChannelLayer'
-    }
+        'BACKEND': 'channels_redis.pubsub.RedisChannelLayer',
+        'CONFIG': {
+            "hosts": [os.environ.get('REDIS_URL', 'redis://localhost:6379/')],
+        },
+    },
 }

@@ -1,1 +1,1 @@
-web: gunicorn gvhc.wsgi --log-file -
+web: daphne gvhc.asgi:application --port $PORT --bind 0.0.0.0
