@@ -20,11 +20,8 @@ os.environ.setdefault("DJANGO_SETTINGS_MODULE", "gvhc.settings")
 application = ProtocolTypeRouter({
     "http": get_asgi_application(),
     "websocket": AllowedHostsOriginValidator(
-        OriginValidator(
-            AuthMiddlewareStack(
-                URLRouter(websocket_app.routing.websocket_urlpatterns)
-            ),
-            origins=["https://gvhc.netlify.app", "https://gvhc-backend.onrender.com"]
+        AuthMiddlewareStack(
+            URLRouter(websocket_app.routing.websocket_urlpatterns)
         )
-    ),
+    )
 })
