@@ -1,8 +1,7 @@
 #consumers.py
 from channels.generic.websocket import AsyncWebsocketConsumer
 import json, asyncio
-import httpx # Usaremos httpx para llamadas HTTP asíncronas
-from websocket_app.fetch_script import fetch_calls_from_api  # Ajusta el import
+from .fetch_script import fetch_calls_on_hold_data # 👈 Importa la nueva función
 
 class MyConsumer(AsyncWebsocketConsumer):
     async def connect(self):
@@ -42,49 +41,15 @@ class MyConsumer(AsyncWebsocketConsumer):
             await self.close() 
 
     async def send_calls_update(self):
-        client = None 
-        response = None # Inicializar response para el JSONDecodeError
-
         try:
-            # *** CAMBIO CLAVE: Usar httpx para llamadas HTTP asíncronas ***
-            # Esto evita bloquear el event loop con requests.post (que es síncrono)
-            # y es más apropiado para Django Channels (basado en ASGI).
-            client = httpx.AsyncClient()
-            DJANGO_PROXY_URL = "https://gvhc-backend.onrender.com/api/dashboards/proxy/generic/"
-            proxy_payload = {
-                "endpoint": "V2/queues/getCallsOnHold/",
-                "payload": {}
-            }
-            response = await client.post(DJANGO_PROXY_URL, json=proxy_payload, timeout=10.0) # Añadir timeout
-            response.raise_for_status() # Lanza excepción para códigos de estado HTTP 4xx/5xx
-            data = response.json()
-            print(f"[{self.channel_name}] Data from proxy: {json.dumps(data)}") # Debug print
+            # ✅ Esta llamada ahora usa toda la lógica centralizada y es 100% eficiente
+            data = await fetch_calls_on_hold_data()
 
-            if data:
-                await self.send(text_data=json.dumps({
-                    "type": "callsUpdate",
-                    "payload": data
-                }))
-                print(f"[{self.channel_name}] Sent calls update.")
-            else:
-                print(f"[{self.channel_name}] No data received from proxy. Sending empty array.")
-                await self.send(text_data=json.dumps({
-                    "type": "callsUpdate",
-                    "payload": {"getCallsOnHoldData": []}
-                }))
-        except httpx.RequestError as e:
-            print(f"[{self.channel_name}] HTTPX Request Error during fetch: {e}")
-            await self.send(text_data=json.dumps({"type": "error", "message": f"API fetch error: {e}. Retrying soon."}))
-            # Considera si quieres cerrar la conexión o solo registrar el error
-        except httpx.HTTPStatusError as e:
-            print(f"[{self.channel_name}] HTTP Status Error from proxy: {e.response.status_code} - {e.response.text}")
-            await self.send(text_data=json.dumps({"type": "error", "message": f"Proxy HTTP error: {e.response.status_code}. Retrying soon."}))
-        except json.JSONDecodeError as e:
-            print(f"[{self.channel_name}] JSON Decode Error: {e} - Response: {response.text}")
-            await self.send(text_data=json.dumps({"type": "error", "message": "Invalid JSON from API."}))
+            await self.send(text_data=json.dumps({
+                "type": "callsUpdate",
+                "payload": data
+            }))
         except Exception as e:
             print(f"[{self.channel_name}] Unexpected error in send_calls_update: {e}")
-            await self.send(text_data=json.dumps({"type": "error", "message": f"Unexpected server error in update: {e}. Retrying soon."}))
-        finally:
-            if client:
-                await client.aclose()
+            # Manejo de errores...
+            await self.send(text_data=json.dumps({"type": "error", "message": "Unexpected server error."}))
