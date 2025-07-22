@@ -1,7 +1,8 @@
+#dashboards/views.py
 import requests
 import json
 import os
-from dotenv import load_dotenv
+
 from pathlib import Path
 import logging
 import re
@@ -16,28 +17,23 @@ from urllib.parse import urlparse, parse_qs
 from websocket_app.fetch_script import _call_sharpen_api_async # 👈 Importamos la función "cerebro"
 from asgiref.sync import async_to_sync
 from rest_framework import status # Add this import if you're using status.HTTP_xxx_REQUEST
+from django.conf import settings 
 
-BASE_DIR = Path(__file__).resolve().parent.parent
-print(BASE_DIR / '.env')
 
-load_dotenv(dotenv_path=BASE_DIR / '.env', override=True) 
-# Create your views here.
-# logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
 
 HERMOSILLO_TZ = pytz.timezone('America/Hermosillo') 
 UTC_TZ = pytz.utc # Zona horaria UTC para localizar los datetimes
-
-SHARPEN_API_BASE_URL = os.getenv('SHARPEN_API_BASE_URL')
 
 def get_sharpen_audio_url(mixmon_file_name: str, recording_key: str) -> str | None:
     """
     Llama a la API de Sharpen para obtener una nueva URL de audio para una grabación.
     """
     endpoint = "V2/voice/callRecordings/createRecordingURL"
-    cKey1 = os.getenv('SHARPEN_CKEY1')
-    cKey2 = os.getenv('SHARPEN_CKEY2')
-    uKey = os.getenv('SHARPEN_UKEY')
+    cKey1 = settings.SHARPEN_CKEY1
+    cKey2 = settings.SHARPEN_CKEY2
+    uKey = settings.SHARPEN_UKEY
+    logger.info(f"Sharpen Keys: cKey1={cKey1}, cKey2={cKey2}, uKey={uKey}")
 
     if not all([cKey1, cKey2, uKey]):
         logger.error("Error: Las claves de Sharpen no están configuradas para la renovación de URLs.")
@@ -51,7 +47,7 @@ def get_sharpen_audio_url(mixmon_file_name: str, recording_key: str) -> str | No
         "fileName": mixmon_file_name
     }
     
-    api_url = f"{SHARPEN_API_BASE_URL}/{endpoint}/"
+    api_url = f"{settings.SHARPEN_API_BASE_URL}/{endpoint}/"
     logger.info(f"Solicitando nueva URL de audio a Sharpen: {api_url}")
 
     try:
@@ -160,11 +156,16 @@ class SharpenAudioProxyView(View): # Usamos View en lugar de APIView porque no m
         return response
 
 class SharpenApiGenericProxyView(APIView):
+    permission_classes = [AllowAny] 
     """
     Esta vista ahora actúa como un simple delegado.
     Toda la lógica de negocio vive en `call_sharpen_api_service`.
     """
     def post(self, request):
+        logger.info("SharpenApiGenericProxyView: Solicitud POST recibida.")
+        actual_permission_classes = self.get_permissions()
+        logger.info(f"SharpenApiGenericProxyView: Clases de permisos aplicadas: {[type(p).__name__ for p in actual_permission_classes]}")
+
         endpoint = request.data.get('endpoint')
         payload = request.data.get('payload')
 
@@ -173,17 +174,20 @@ class SharpenApiGenericProxyView(APIView):
                 {"status": "error", "description": "Missing 'endpoint' or invalid 'payload'"},
                 status=status.HTTP_400_BAD_REQUEST
             )
+        logger.info(f"SharpenApiGenericProxyView: Procesando endpoint: {endpoint} con payload: {payload}")
 
         # Llama a la función de servicio asíncrona desde este contexto síncrono
         result = async_to_sync(_call_sharpen_api_async)(endpoint, payload)
 
         # Maneja la respuesta del servicio
         if result and "error" not in result:
+            logger.info("SharpenApiGenericProxyView: Éxito al llamar a Sharpen API.")
             return Response(result, status=status.HTTP_200_OK)
         else:
             # Devuelve el código de estado y mensaje de error que el servicio reportó
             status_code = result.get("status_code", 500) if result else 500
             error_desc = result.get("error", "Failed to fetch data from the external API.") if result else "Internal Server Error"
+            logger.error(f"SharpenApiGenericProxyView: Error al llamar a Sharpen API. Status: {status_code}, Desc: {error_desc}")
             return Response(
                 {"status": "error", "description": error_desc},
                 status=status_code

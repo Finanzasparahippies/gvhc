@@ -1,15 +1,15 @@
-# En alguna parte de tu app de Django, por ej: dashboards/services.py
+# websocket_app/fetch_script.py
 
 import httpx
 import json
-import os # 👈 Importa 'os' para las variables de entorno
-from dashboards.utils import convert_query_times_to_utc, convert_result_datetimes_to_local
 
-SHARPEN_API_BASE_URL = "https://api-current.iz1.sharpen.cx/" # 👈 Asegúrate que esta es la URL base correcta
+from dashboards.utils import convert_query_times_to_utc, convert_result_datetimes_to_local
+from django.conf import settings 
+
 
 async def _forward_to_sharpen_async(endpoint: str, full_payload: dict):
     """Función base que realiza la llamada asíncrona a Sharpen."""
-    url = f"{SHARPEN_API_BASE_URL}{endpoint}"
+    url = f"{settings.SHARPEN_API_BASE_URL}{endpoint}"
     try:
         async with httpx.AsyncClient() as client:
             response = await client.post(url, json=full_payload, timeout=30.0)
@@ -35,9 +35,9 @@ async def _call_sharpen_api_async(endpoint: str, payload: dict):
     Esta función reemplaza la lógica de '_forward_to_sharpen' de tu vista.
     """
     auth_payload = {
-        "cKey1": os.getenv('SHARPEN_CKEY1'),
-        "cKey2": os.getenv('SHARPEN_CKEY2'),
-        "uKey": os.getenv('SHARPEN_UKEY'),
+        "cKey1": settings.SHARPEN_CKEY1,
+        "cKey2": settings.SHARPEN_CKEY2,
+        "uKey": settings.SHARPEN_UKEY,
     }
     
     if endpoint == "V2/query/":

@@ -1,3 +1,4 @@
+# dashboards/utils.py
 import pytz
 import re
 import json
@@ -8,6 +9,18 @@ logger = logging.getLogger(__name__)
 
 HERMOSILLO_TZ = pytz.timezone('America/Hermosillo')
 UTC_TZ = pytz.utc
+
+_POTENTIAL_TIME_FIELD_NAMES = [
+    'startTime', 'StartTime', 'answerTime', 'AnswerTime', 'endTime', 'EndTime',
+    'created_at', 'updated_at', 'timestamp', 'intervals',
+    'lastLogin', 'lastLogout', 'currentStatusDuration', 'lastCallTime',
+    'lastPauseTime', 'pauseTime', 'PauseTime', 'loginTime', 'LoginTime',
+    'logoutTime', 'LogoutTime', 'lastStatusChange'
+]
+
+_NORMALIZED_POTENTIAL_TIME_FIELD_NAMES = {
+    name.lower().replace(' ', '') for name in _POTENTIAL_TIME_FIELD_NAMES
+}
 
 def convert_query_times_to_utc(query: str) -> str:
     """
@@ -66,11 +79,6 @@ def convert_result_datetimes_to_local(result: dict) -> dict:
     """
     Convierte los campos de fecha/hora en la respuesta 'result' de UTC a hora local (Hermosillo).
     """
-    potential_time_field_names  = [
-                'startTime', 'StartTime', 'answerTime', 'AnswerTime', 'endTime', 'EndTime', 'created_at', 'updated_at', 'timestamp', 'intervals',
-                'lastLogin', 'lastLogout', 'currentStatusDuration', 'lastCallTime', 'lastPauseTime', 'pauseTime', 'PauseTime', 'loginTime', 'LoginTime',
-                'logoutTime', 'LogoutTime', 'lastStatusChange'
-    ]
     data_to_process = None
     is_table_string = False
     is_single_object = False # Nueva bandera para saber si es un objeto único
@@ -128,8 +136,7 @@ def convert_result_datetimes_to_local(result: dict) -> dict:
             
             # Comprueba si el nombre del campo está en nuestra lista de nombres de campos de tiempo
             # O si el nombre normalizado sugiere que es un campo de tiempo
-            is_potential_time_field = key in potential_time_field_names or \
-                any(name.lower().replace(' ', '') == normalized_key_for_comparison for name in potential_time_field_names)
+            is_potential_time_field = normalized_key_for_comparison in _NORMALIZED_POTENTIAL_TIME_FIELD_NAMES
 
             if is_potential_time_field and isinstance(value, str) and value:
                 try:

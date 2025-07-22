@@ -22,10 +22,36 @@ print(BASE_DIR / '.env')
 
 load_dotenv(dotenv_path=BASE_DIR / '.env', override=True) 
 
+DEBUG = os.getenv('DEBUG', 'False').lower() in ('true', '1', 't')
 MODE = os.getenv("MODE", "development").lower()
 
+if MODE == "production":
+    SHARPEN_API_BASE_URL = os.getenv('SHARPEN_API_BASE_URL')
+    # Opcional: si Sharpen tiene claves diferentes para producción
+    SHARPEN_CKEY1 = os.getenv('SHARPEN_CKEY1')
+    SHARPEN_CKEY2 = os.getenv('SHARPEN_CKEY2')
+    SHARPEN_UKEY = os.getenv('SHARPEN_UKEY')
+else: # development (o cualquier otro valor de MODE)
+    SHARPEN_API_BASE_URL = os.getenv('SHARPEN_API_BASE_URL', 'https://api-current.iz1.sharpen.cx/') # Valor por defecto para dev si no está en .env
+    # Opcional: si Sharpen tiene claves diferentes para desarrollo
+    SHARPEN_CKEY1 = os.getenv('SHARPEN_CKEY1')
+    SHARPEN_CKEY2 = os.getenv('SHARPEN_CKEY2')
+    SHARPEN_UKEY = os.getenv('SHARPEN_UKEY')
 
-DEBUG = os.getenv('DEBUG', 'False').lower() in ('true', '1', 't')
+# URL de Redis para Channels
+# Render usa REDIS_URL para Redis
+if MODE == "production":
+    REDIS_URL_FOR_CHANNELS = os.getenv('REDIS_URL_PROD') # Esto podría ser el mismo REDIS_URL de Render
+else: # development
+    REDIS_URL_FOR_CHANNELS = os.getenv('REDIS_URL_DEV', 'redis://localhost:6379/') # Valor por defecto para dev
+
+
+# Impresiones para depuración
+print(f"Loading settings in MODE: {MODE}")
+print(f"DEBUG is: {DEBUG}")
+print(f"SHARPEN_API_BASE_URL is: {SHARPEN_API_BASE_URL}")
+print(f"REDIS_URL_FOR_CHANNELS is: {REDIS_URL_FOR_CHANNELS}")
+
 
 ALLOWED_HOSTS_ENV = os.getenv('ALLOWED_HOSTS').split(',')
 
@@ -284,7 +310,7 @@ CSRF_TRUSTED_ORIGINS = [
     "https://gvhc-backend.onrender.com",
     "wss://gvhc-backend.onrender.com",
     "https://api-current.iz1.sharpen.cx",
-    "wss://localhost:8001"
+    "ws://localhost:8001"
 ]
 
 CSRF_COOKIE_NAME = 'csrftoken'  # Asegúrate de que este valor sea el correcto
@@ -304,7 +330,7 @@ CHANNEL_LAYERS = {
     'default': {
         'BACKEND': 'channels_redis.core.RedisChannelLayer', 
         'CONFIG': {
-            "hosts": [os.environ.get('REDIS_URL', 'redis://localhost:6379/')],
+            "hosts": [REDIS_URL_FOR_CHANNELS], # Usa la variable que configuramos por entorno
         },
     },
 }
