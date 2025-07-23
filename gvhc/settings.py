@@ -342,6 +342,7 @@ CORS_ALLOWED_ORIGINS = [
     "http://localhost:5173",  # Para pruebas locales
     "http://localhost:8000",
     "https://api-current.iz1.sharpen.cx",
+    "https://gvhc-backend.onrender.com",
 ]
 CORS_ALLOWED_ORIGIN_REGEXES = [
     r"^https://.*\.github\.dev$",
