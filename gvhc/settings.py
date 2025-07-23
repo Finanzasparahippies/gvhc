@@ -41,7 +41,9 @@ else: # development (o cualquier otro valor de MODE)
 # URL de Redis para Channels
 # Render usa REDIS_URL para Redis
 if MODE == "production":
-    REDIS_URL_FOR_CHANNELS = os.getenv('REDIS_URL_PROD') # Esto podría ser el mismo REDIS_URL de Render
+    REDIS_URL_FOR_CHANNELS = os.getenv('REDIS_URL', os.getenv('REDIS_URL_PROD'))
+    if not REDIS_URL_FOR_CHANNELS:
+        raise Exception("REDIS_URL or REDIS_URL_PROD must be set in production mode.")
 else: # development
     REDIS_URL_FOR_CHANNELS = os.getenv('REDIS_URL_DEV', 'redis://localhost:6379/') # Valor por defecto para dev
 
@@ -52,18 +54,62 @@ print(f"DEBUG is: {DEBUG}")
 print(f"SHARPEN_API_BASE_URL is: {SHARPEN_API_BASE_URL}")
 print(f"REDIS_URL_FOR_CHANNELS is: {REDIS_URL_FOR_CHANNELS}")
 
+REDIS_SSL_OPTIONS = {
+    'ssl_cert_reqs': 'required', # 'required', 'optional', or 'none'
+    # 'ssl_ca_certs': '/path/to/your/ca-bundle.crt', # Only needed if you have specific CA certs
+}
 
-ALLOWED_HOSTS_ENV = os.getenv('ALLOWED_HOSTS').split(',')
+def build_redis_url_with_ssl(base_url, db_index=None):
+    if base_url.startswith('rediss://'):
+        # For 'rediss://', append SSL query parameters to the URL
+        # redis-py (used by Celery and channels-redis) understands these parameters in the URL
+        ssl_params = []
+        if REDIS_SSL_OPTIONS.get('ssl_cert_reqs'):
+            # Convert 'required'/'optional'/'none' to the expected query param value
+            reqs_map = {
+                'required': 'CERT_REQUIRED',
+                'optional': 'CERT_OPTIONAL',
+                'none': 'CERT_NONE'
+            }
+            ssl_params.append(f"ssl_cert_reqs={reqs_map[REDIS_SSL_OPTIONS['ssl_cert_reqs']]}")
+        if REDIS_SSL_OPTIONS.get('ssl_ca_certs'):
+            ssl_params.append(f"ssl_ca_certs={REDIS_SSL_OPTIONS['ssl_ca_certs']}")
+
+        if ssl_params:
+            if '?' in base_url:
+                url_with_ssl = f"{base_url}&{'&'.join(ssl_params)}"
+            else:
+                url_with_ssl = f"{base_url}?{'&'.join(ssl_params)}"
+        else:
+            url_with_ssl = base_url
+    else:
+        url_with_ssl = base_url
+
+    if db_index is not None:
+        # If the URL already contains a database index, don't append it again
+        if not url_with_ssl.endswith(f'/{db_index}'):
+            # Check if there's a database index already specified and handle it
+            from urllib.parse import urlparse, urlunparse
+            parsed_url = urlparse(url_with_ssl)
+            if parsed_url.path: # If there's already a path (like /0 or /1)
+                parsed_url = parsed_url._replace(path=f'/{db_index}')
+            else:
+                parsed_url = parsed_url._replace(path=f'/{db_index}')
+            url_with_ssl = urlunparse(parsed_url)
+    return url_with_ssl
+
+ALLOWED_HOSTS_STR = os.getenv('ALLOWED_HOSTS', 'localhost,127.0.0.1,gvhc-backend.onrender.com,gvhc.netlify.app')
+ALLOWED_HOSTS_ENV = ALLOWED_HOSTS_STR.split(',')
 
 ALLOWED_HOSTS = [host.strip() for host in ALLOWED_HOSTS_ENV if host.strip()] # Limpiar espacios y vacíos
 
 # Añadir explícitamente los dominios de Render y Netlify
-ALLOWED_HOSTS.extend([
-    'gvhc-backend.onrender.com',
-    'gvhc.netlify.app',
-    'localhost', # Para desarrollo local
-    '127.0.0.1', # Para desarrollo local
-])
+# ALLOWED_HOSTS.extend([
+#     'gvhc-backend.onrender.com',
+#     'gvhc.netlify.app',
+#     'localhost', # Para desarrollo local
+#     '127.0.0.1', # Para desarrollo local
+# ])
 
 # Eliminar duplicados si los hay
 ALLOWED_HOSTS = list(set(ALLOWED_HOSTS))
@@ -101,6 +147,7 @@ INSTALLED_APPS = [
     "django.contrib.contenttypes",
     "django.contrib.sessions",
     "django.contrib.messages",
+    "daphne", 
     "django.contrib.staticfiles",
     "faqs",
     "users",
@@ -334,3 +381,17 @@ CHANNEL_LAYERS = {
         },
     },
 }
+
+CELERY_BROKER_URL = build_redis_url_with_ssl(REDIS_URL_FOR_CHANNELS, db_index=0)
+CELERY_RESULT_BACKEND = build_redis_url_with_ssl(REDIS_URL_FOR_CHANNELS, db_index=1)
+CELERY_IMPORTS = ('websocket_app.tasks',) # Or CELERY_INCLUDE = ['websocket_app.tasks'] if using Celery 4.x+ preferred syntax
+
+CELERY_BEAT_SCHEDULE = {
+    'broadcast-every-5-seconds': {
+        'task': 'websocket_app.tasks.broadcast_calls_update',
+        'schedule': 5.0,
+    },
+}
+
+print(f"CELERY_BROKER_URL: {CELERY_BROKER_URL}") # Add this for debugging
+print(f"CELERY_RESULT_BACKEND: {CELERY_RESULT_BACKEND}") # Add this for debugging

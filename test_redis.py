@@ -4,30 +4,44 @@ from dotenv import load_dotenv
 from pathlib import Path
 
 BASE_DIR = Path(__file__).resolve().parent
+# Load .env relative to BASE_DIR, just like in your settings
 load_dotenv(dotenv_path=BASE_DIR / '.env', override=True)
 
-redis_url = os.getenv('REDIS_URL', 'redis://localhost:6379/')
-print(f"Intentando conectar a Redis en: {redis_url}")
+# Get the MODE variable
+MODE = os.getenv("MODE", "development").lower()
+
+final_redis_url = ''
+
+if MODE == "production":
+    final_redis_url = os.getenv('REDIS_URL', os.getenv('REDIS_URL_PROD'))
+    if not final_redis_url:
+        print("ERROR: In production mode, REDIS_URL or REDIS_URL_PROD must be set in .env")
+        exit(1)
+else: # development
+    final_redis_url = os.getenv('REDIS_URL_DEV', 'redis://localhost:6379/') # Fallback to localhost if not in .env
+
+print(f"Loading settings in MODE: {MODE}")
+print(f"Attempting to connect to Redis at: {final_redis_url}")
 
 try:
-    # Crea una instancia del cliente Redis
-    # decode_responses=True asegura que las respuestas de Redis sean strings de Python
-    r = redis.from_url(redis_url, decode_responses=True)
+    # Use redis.from_url to handle 'redis://' or 'rediss://' (for SSL)
+    # decode_responses=True ensures that Redis responses are Python strings
+    r = redis.from_url(final_redis_url, decode_responses=True)
 
-    # Intenta hacer un ping al servidor Redis
+    # Attempt to ping the Redis server
     response = r.ping()
     if response:
-        print("¡Conexión a Redis exitosa! Ping respondió con:", response)
-        # Opcional: Establecer y obtener una clave para verificar escritura/lectura
+        print("SUCCESS: Connected to Redis! Ping responded with:", response)
+        # Optional: Set and get a key to verify write/read
         r.set('test_key', 'Hello Redis!')
         value = r.get('test_key')
-        print(f"Clave 'test_key' establecida y leída: {value}")
-        r.delete('test_key') # Limpiar
+        print(f"Key 'test_key' set and read: {value}")
+        r.delete('test_key') # Clean up
     else:
-        print("Conexión a Redis establecida, pero el ping falló.")
+        print("WARNING: Connected to Redis, but ping failed.")
 
 except redis.exceptions.ConnectionError as e:
-    print(f"ERROR: No se pudo conectar a Redis. Detalles: {e}")
-    print("Por favor, verifica que el servidor Redis esté corriendo y accesible en la URL proporcionada.")
+    print(f"ERROR: Could not connect to Redis. Details: {e}")
+    print("Please ensure the Redis server is running and accessible at the provided URL.")
 except Exception as e:
-    print(f"Ocurrió un error inesperado: {e}")
+    print(f"An unexpected error occurred: {e}")
