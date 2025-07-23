@@ -9,7 +9,10 @@ from django.conf import settings
 
 async def _forward_to_sharpen_async(endpoint: str, full_payload: dict):
     """Función base que realiza la llamada asíncrona a Sharpen."""
-    url = f"{settings.SHARPEN_API_BASE_URL}{endpoint}"
+    from urllib.parse import urljoin # Add this import if not already there
+
+    url = urljoin(settings.SHARPEN_API_BASE_URL, endpoint)
+    print(f"DEBUG: Llamando a Sharpen URL: {url}")
     try:
         async with httpx.AsyncClient() as client:
             response = await client.post(url, json=full_payload, timeout=30.0)
@@ -63,6 +66,12 @@ async def _call_sharpen_api_async(endpoint: str, payload: dict):
 
     # Puedes añadir aquí otros manejos especiales de endpoints...
     # ...
+    elif endpoint == "V2/voice/callRecordings/createRecordingURL/":
+        full_payload = {**auth_payload, **payload}
+        # With urljoin, you can pass the endpoint as Sharpen expects it.
+        # If Sharpen truly wants 'V2/voice/callRecordings/createRecordingURL/',
+        # then pass it with the trailing slash here.
+        return await _forward_to_sharpen_async("V2/voice/callRecordings/createRecordingURL/", full_payload)
 
     # Manejo genérico por defecto para todos los demás endpoints
     else:

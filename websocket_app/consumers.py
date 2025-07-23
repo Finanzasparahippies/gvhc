@@ -5,12 +5,13 @@ from .fetch_script import fetch_calls_on_hold_data # 👈 Importa la nueva funci
 
 class MyConsumer(AsyncWebsocketConsumer):
     async def connect(self):
+        await self.channel_layer.group_add("calls", self.channel_name)
         await self.accept()
         print(f"[{self.channel_name}] WebSocket connected.")
 
         # Envía mensaje de bienvenida
-        await self.send(text_data=json.dumps({"message": "WebSocket conectado"}))
-        self.loop_task = asyncio.create_task(self.periodic_updates())
+        await self.send(json.dumps({"message": "WebSocket conectado"}))
+
 
 
     async def disconnect(self, close_code):
@@ -53,3 +54,14 @@ class MyConsumer(AsyncWebsocketConsumer):
             print(f"[{self.channel_name}] Unexpected error in send_calls_update: {e}")
             # Manejo de errores...
             await self.send(text_data=json.dumps({"type": "error", "message": "Unexpected server error."}))
+
+async def send_calls(self, event):
+    try:
+        payload = event.get("payload", {})
+        await self.send(text_data=json.dumps({
+            "type": "callsUpdate",
+            "payload": payload
+        }))
+    except Exception as e:
+        print(f"[{self.channel_name}] Error in send_calls handler: {e}")
+        await self.send(text_data=json.dumps({"type": "error", "message": "Error broadcasting update."}))
