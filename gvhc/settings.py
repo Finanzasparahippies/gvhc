@@ -354,7 +354,7 @@ CSRF_TRUSTED_ORIGINS = [
     "http://localhost:8000",
     "http://localhost:8001",
     "http://localhost:5173",
-    "https://gvhc.netlify.app",  # URL del frontend
+    "https://gvhc.netlify.app", 
     "https://gvhc-backend.onrender.com",
     "wss://gvhc-backend.onrender.com",
     "https://api-current.iz1.sharpen.cx",
