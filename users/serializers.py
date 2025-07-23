@@ -5,6 +5,8 @@ from .models import User
 from queues.models import Queue
 from rest_framework_simplejwt.serializers import TokenObtainPairSerializer
 import logging
+import time
+
 
 logger = logging.getLogger(__name__)
 
@@ -21,6 +23,8 @@ class UserSerializer(serializers.ModelSerializer):
 
 class MyTokenObtainPairSerializer(TokenObtainPairSerializer):
     def validate(self, attrs):
+        start = time.time()
+
         # --- La línea del error estaba aquí ---
         logger.info("--- MyTokenObtainPairSerializer.validate started ---")
         # Esta es la forma correcta de imprimir para depurar:
@@ -28,12 +32,13 @@ class MyTokenObtainPairSerializer(TokenObtainPairSerializer):
 
         # Ejecuta la validación original (comprueba usuario y contraseña)
         data = super().validate(attrs)
+        end = time.time()
 
         # Ahora, añade los datos de tu usuario a la respuesta
         # self.user es el objeto de usuario que se autenticó correctamente
         user_data = UserSerializer(self.user).data
         data['user'] = user_data
-
+        print(f"Validation took {end - start} seconds")
         # La respuesta ahora contendrá: refresh, access, y user
         return data
 

@@ -41,7 +41,7 @@ else: # development (o cualquier otro valor de MODE)
 # URL de Redis para Channels
 # Render usa REDIS_URL para Redis
 if MODE == "production":
-    REDIS_URL_FOR_CHANNELS = os.getenv('REDIS_URL', os.getenv('REDIS_URL_PROD'))
+    REDIS_URL_FOR_CHANNELS = os.getenv('REDIS_URL_PROD','redis://red-d1vcnmk9c44c73dojp80:6379')
     if not REDIS_URL_FOR_CHANNELS:
         raise Exception("REDIS_URL or REDIS_URL_PROD must be set in production mode.")
 else: # development
