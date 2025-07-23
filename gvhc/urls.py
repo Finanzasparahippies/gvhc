@@ -21,6 +21,7 @@ from django.contrib import admin
 from django.urls import path, include
 from django.conf.urls.static import static
 from users.views import MyTokenObtainPairView, ProtectedUserView # <-- Aquí está el cambio clave si no lo tienes así
+from websocket_app.views import cors_test
 from rest_framework_simplejwt.views import (
     TokenRefreshView,
     TokenVerifyView
@@ -51,4 +52,6 @@ urlpatterns = [
     path('api/grammar/', include('calling_monitor.urls')),
     path('api/reports/', include('reports.urls')),
     path('api/dashboards/', include('dashboards.urls')),
+    path("cors-test/", cors_test)
 ] + static(settings.MEDIA_URL, document_root=settings.MEDIA_ROOT)
+
