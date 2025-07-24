@@ -386,6 +386,12 @@ CHANNEL_LAYERS = {
 CELERY_BROKER_URL = build_redis_url_with_ssl(REDIS_URL_FOR_CHANNELS, db_index=0)
 CELERY_RESULT_BACKEND = build_redis_url_with_ssl(REDIS_URL_FOR_CHANNELS, db_index=1)
 CELERY_IMPORTS = ('websocket_app.tasks',) # Or CELERY_INCLUDE = ['websocket_app.tasks'] if using Celery 4.x+ preferred syntax
+CELERY_ACCEPT_CONTENT = ['json']
+CELERY_TASK_SERIALIZER = 'json'
+CELERY_RESULT_SERIALIZER = 'json'
+CELERY_TIMEZONE = 'America/Hermosillo' # Ajusta tu zona horaria
+CELERY_ENABLE_UTC = False # Si manejas tus horas localmente
+
 
 CELERY_BEAT_SCHEDULE = {
     'broadcast-every-5-seconds': {

@@ -1,0 +1,22 @@
+app = "gvhc"
+
+kill_signal = "SIGINT"
+kill_timeout = 5
+primary_region = "iad" 
+
+[build]
+  dockerfile = "./Dockerfile"
+
+[processes]
+  worker = "celery -A gvhc worker --pool=solo --loglevel=info " 
+
+  beat = "celery -A gvhc beat --loglevel=info"
+
+[mounts]
+  source="celery_beat_data" 
+  destination="/data"       
+
+[[vm]]
+  cpu_kind = "shared"
+  cpus = 1
+  memory = "512mb" 
