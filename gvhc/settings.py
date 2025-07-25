@@ -396,7 +396,7 @@ CELERY_RESULT_SERIALIZER = 'json'
 CELERY_TIMEZONE = 'America/Hermosillo' # Ajusta tu zona horaria
 CELERY_ENABLE_UTC = False # Si manejas tus horas localmente
 
-
+CELERY_BEAT_SCHEDULE_FILENAME = "/data/celerybeat-schedule"
 CELERY_BEAT_SCHEDULE = {
     'broadcast-every-5-seconds': {
         'task': 'websocket_app.tasks.broadcast_calls_update',

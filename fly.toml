@@ -35,3 +35,7 @@ console_command = '/code/manage.py shell'
 [[statics]]
   guest_path = '/code/static'
   url_prefix = '/static/'
+
+[mounts]
+  source="celery_beat_data" 
+  destination="/data"
