@@ -24,7 +24,7 @@ def broadcast_calls_update():
             async_to_sync(channel_layer.group_send)(
                 "calls",
                 {
-                    "type": "send.calls",
+                    "type": "send_calls",
                     "payload": payload
                 }
             )
