@@ -1,15 +1,14 @@
-#websocket_app/views,py
-from django.http import JsonResponse
 import psutil
+from fastapi import APIRouter
 
-def cors_test(request):
-    return JsonResponse({"message": "CORS works!"})
+router = APIRouter()
 
-def system_metrics_view(request):
+@router.get("/metrics")
+def get_metrics():
     memory = psutil.virtual_memory()
     cpu = psutil.cpu_percent(interval=0.5)
-    return JsonResponse({
+    return {
         "memory_used_mb": round(memory.used / (1024 ** 2), 2),
         "memory_percent": memory.percent,
         "cpu_percent": cpu
-    })
+    }

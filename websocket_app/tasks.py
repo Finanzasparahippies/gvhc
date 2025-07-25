@@ -5,7 +5,10 @@ from channels.layers import get_channel_layer
 from asgiref.sync import async_to_sync
 import hashlib
 import json
+from .monitoring import get_resource_metrics
+import logging
 
+logger = logging.getLogger(__name__)
 _last_checksum = None  # Guardar el último estado
 
 
@@ -38,3 +41,12 @@ def broadcast_calls_update():
 
     except Exception as e:
         print("Error en Celery broadcast_calls_update:", e)
+
+
+
+logger = logging.getLogger(__name__)
+
+@shared_task
+def log_system_metrics():
+    metrics = get_resource_metrics()
+    logger.info(f"[Metrics] RAM: {metrics['memory_used_mb']} MB ({metrics['memory_percent']}%), CPU: {metrics['cpu_percent']}%")
