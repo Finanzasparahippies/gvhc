@@ -163,6 +163,7 @@ INSTALLED_APPS = [
     "channels",
     #third party
     "rest_framework",
+    "django_celery_beat",
     "corsheaders",
     "openai",
     "cloudinary",
