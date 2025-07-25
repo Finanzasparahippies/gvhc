@@ -1,0 +1,4 @@
+# Procfile.combined
+web: exec daphne -b 0.0.0.0 -p $PORT gvhc.asgi:application
+worker: python -m celery -A gvhc worker --pool=solo --loglevel=info
+beat: python -m celery -A gvhc beat --loglevel=info --pidfile=/tmp/celerybeat.pid --schedule=/tmp/celerybeat-schedule

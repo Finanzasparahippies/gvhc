@@ -1,0 +1,33 @@
+# fly.toml app configuration file generated for gvhc on 2025-07-24T22:48:30-07:00
+#
+# See https://fly.io/docs/reference/configuration/ for information about how to use this file.
+#
+
+app = 'gvhc'
+primary_region = 'lax'
+console_command = '/code/manage.py shell'
+
+[build]
+
+[deploy]
+  release_command = 'python manage.py migrate --noinput'
+
+[env]
+  PORT = '8000'
+
+[processes]
+  celery = "celery -A gvhc worker --loglevel=INFO"
+  beat = "celery -A gvhc beat --loglevel=INFO --scheduler django_celery_beat.schedulers:DatabaseScheduler --pidfile="
+
+[[vm]]
+  memory = '1gb'
+  cpu_kind = 'shared'
+  cpus = 1
+
+[[statics]]
+  guest_path = '/code/static'
+  url_prefix = '/static/'
+
+[mounts]
+  source="celery_beat_data" 
+  destination="/data"
