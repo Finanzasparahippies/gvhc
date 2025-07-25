@@ -10,6 +10,7 @@ For the full list of settings and their values, see
 https://docs.djangoproject.com/en/5.1/ref/settings/
 """
 import os  
+from urllib.parse import urlparse, urlunparse, parse_qs, urlencode
 import psycopg2
 from pathlib import Path
 import cloudinary 
@@ -17,6 +18,7 @@ from dotenv import load_dotenv
 from datetime import timedelta
 from django.core.management.utils import get_random_secret_key
 import environ
+import ssl # Necesario si vas a manejar CERT_REQUIRED/OPTIONAL programáticamente
 
 env = environ.Env()
 environ.Env.read_env()
@@ -45,14 +47,16 @@ else: # development (o cualquier otro valor de MODE)
 # URL de Redis para Channels
 # Render usa REDIS_URL para Redis
 if MODE == "production":
+    # Ahora, asume que REDIS_URL_PROD ya tiene el parámetro SSL
     REDIS_URL = os.getenv('REDIS_URL_PROD')
     if not REDIS_URL:
         raise Exception("REDIS_URL_PROD must be set in production mode.")
-    if 'onrender.com' in REDIS_URL and 'ssl_cert_reqs' not in REDIS_URL:
-        REDIS_URL += '?ssl_cert_reqs=none'
+    # Elimina esta sección, ya no es necesaria:
+    # if 'onrender.com' in REDIS_URL and 'ssl_cert_reqs' not in REDIS_URL:
+    #     REDIS_URL += '?ssl_cert_reqs=none'
 else: # development
-    REDIS_URL = os.getenv('REDIS_URL_DEV', 'redis://localhost:6379/') # Valor por defecto para dev
-
+    REDIS_URL = os.getenv('REDIS_URL_DEV', 'redis://localhost:6379/')
+    
 CHANNEL_LAYERS = {
     'default': {
         'BACKEND': 'channels_redis.core.RedisChannelLayer', 
@@ -126,11 +130,11 @@ INSTALLED_APPS = [
     "queues",
     "reports",
     "dashboards",
+    "django_celery_beat",
     "websocket_app",
     "channels",
     #third party
     "rest_framework",
-    "django_celery_beat",
     "corsheaders",
     "openai",
     "cloudinary",
