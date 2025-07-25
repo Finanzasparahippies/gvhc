@@ -45,7 +45,7 @@ else: # development (o cualquier otro valor de MODE)
 # URL de Redis para Channels
 # Render usa REDIS_URL para Redis
 if MODE == "production":
-    REDIS_URL_FOR_CHANNELS = os.getenv('REDIS_URL_PROD','redis://red-d1vcnmk9c44c73dojp80:6379')
+    REDIS_URL_FOR_CHANNELS = os.getenv('REDIS_URL_PROD')
     if not REDIS_URL_FOR_CHANNELS:
         raise Exception("REDIS_URL or REDIS_URL_PROD must be set in production mode.")
 else: # development
@@ -102,7 +102,7 @@ def build_redis_url_with_ssl(base_url, db_index=None):
             url_with_ssl = urlunparse(parsed_url)
     return url_with_ssl
 
-ALLOWED_HOSTS_STR = os.getenv('ALLOWED_HOSTS', 'localhost,127.0.0.1,gvhc-backend.onrender.com,gvhc.netlify.app')
+ALLOWED_HOSTS_STR = os.getenv('ALLOWED_HOSTS', 'localhost,127.0.0.1,gvhc-backend.onrender.com,gvhc.netlify.app','gvhc-websocket.onrender.com')
 ALLOWED_HOSTS_ENV = ALLOWED_HOSTS_STR.split(',')
 
 ALLOWED_HOSTS = [host.strip() for host in ALLOWED_HOSTS_ENV if host.strip()] # Limpiar espacios y vacíos
@@ -363,7 +363,8 @@ CSRF_TRUSTED_ORIGINS = [
     "https://gvhc-backend.onrender.com",
     "wss://gvhc-backend.onrender.com",
     "https://api-current.iz1.sharpen.cx",
-    "ws://localhost:8001"
+    "ws://localhost:8001",
+    "https://gvhc-websocket.onrender.com"
 ]
 
 CSRF_COOKIE_NAME = 'csrftoken'  # Asegúrate de que este valor sea el correcto
