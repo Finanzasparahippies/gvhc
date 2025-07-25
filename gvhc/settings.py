@@ -102,7 +102,7 @@ def build_redis_url_with_ssl(base_url, db_index=None):
             url_with_ssl = urlunparse(parsed_url)
     return url_with_ssl
 
-ALLOWED_HOSTS_STR = os.getenv('ALLOWED_HOSTS', 'localhost,127.0.0.1,gvhc-backend.onrender.com,gvhc.netlify.app','gvhc-websocket.onrender.com')
+ALLOWED_HOSTS_STR = os.getenv('ALLOWED_HOSTS', 'localhost,127.0.0.1,gvhc-backend.onrender.com,gvhc.netlify.app,gvhc-websocket.onrender.com')
 ALLOWED_HOSTS_ENV = ALLOWED_HOSTS_STR.split(',')
 
 ALLOWED_HOSTS = [host.strip() for host in ALLOWED_HOSTS_ENV if host.strip()] # Limpiar espacios y vacíos
