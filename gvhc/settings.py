@@ -403,6 +403,7 @@ CELERY_BEAT_SCHEDULE = {
     'broadcast-every-5-seconds': {
         'task': 'websocket_app.tasks.broadcast_calls_update',
         'schedule': 5.0,
+        'args': (),
     },
 }
 
