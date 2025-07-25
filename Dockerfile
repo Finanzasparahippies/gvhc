@@ -21,4 +21,4 @@ RUN python manage.py collectstatic --noinput
 EXPOSE 8080
 
 # Puedes dejar el CMD vacío aquí porque Fly usará procesos distintos por máquina
-CMD ["daphne", "gvhc.asgi:application", "--port", "8080", "--bind", "0.0.0.0", "-v3"]
+# CMD ["daphne", "gvhc.asgi:application", "--port", "8080", "--bind", "0.0.0.0", "-v3"]
