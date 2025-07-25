@@ -36,6 +36,7 @@ class MyConsumer(AsyncWebsocketConsumer):
             pass
 
     async def send_calls(self, event):
+        print("[Consumer] Enviando llamada a cliente:", event)
         await self.send(text_data=json.dumps({
             "type": "callsUpdate",
             "payload": event.get('payload', {})
