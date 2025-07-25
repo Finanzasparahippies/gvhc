@@ -15,7 +15,11 @@ from pathlib import Path
 import cloudinary 
 from dotenv import load_dotenv
 from datetime import timedelta
+from django.core.management.utils import get_random_secret_key
+import environ
 
+env = environ.Env()
+environ.Env.read_env()
 
 BASE_DIR = Path(__file__).resolve().parent.parent
 print(BASE_DIR / '.env')
@@ -136,7 +140,7 @@ DEFAULT_FILE_STORAGE = 'cloudinary_storage.storage.MediaCloudinaryStorage'
 # See https://docs.djangoproject.com/en/5.1/howto/deployment/checklist/
 
 # SECURITY WARNING: keep the secret key used in production secret!
-SECRET_KEY = os.getenv('SECRET_KEY')
+SECRET_KEY = os.environ.get("SECRET_KEY", get_random_secret_key())
 
 
 # Application definition

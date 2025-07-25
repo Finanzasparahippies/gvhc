@@ -1,4 +1,4 @@
-# Usamos una imagen oficial de Python
+# Dockerfile para desplegar una aplicación Django con Daphne en Fly.io
 FROM python:3.12-slim
 
 # Establecer directorio de trabajo
