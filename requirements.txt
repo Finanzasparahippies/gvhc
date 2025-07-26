@@ -65,7 +65,6 @@ hyperlink==21.0.0
 hypothesis==6.136.4
 idna==3.10
 imagesize==1.4.1
-import-java==0.6
 importlib_metadata==8.7.0
 incremental==24.7.2
 iniconfig==2.1.0
