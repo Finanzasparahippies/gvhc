@@ -16,6 +16,7 @@ env/
 
 # Archivos estáticos y media generados
 /staticfiles/
+/static
 /media/
 
 # Archivos y configuraciones específicas del IDE
