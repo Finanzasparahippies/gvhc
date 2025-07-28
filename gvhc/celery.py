@@ -12,7 +12,7 @@ app.conf.beat_scheduler = 'django_celery_beat.schedulers.DatabaseScheduler'
 app.conf.beat_schedule_filename = os.getenv('CELERY_BEAT_SCHEDULE_FILENAME', '/data/celerybeat-schedule')
 app.conf.beat_schedule.update({
     'log-system-metrics-every-5-mins': {
-        'task': 'myapp.tasks.log_system_metrics',
+        'task': 'gvhc.tasks.log_system_metrics',
         'schedule': crontab(minute='*/5'),
     },
 })
