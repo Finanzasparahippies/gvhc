@@ -130,10 +130,11 @@ INSTALLED_APPS = [
     "queues",
     "reports",
     "dashboards",
+    "foodstation",
+    #third party
     "django_celery_beat",
     "websocket_app",
     "channels",
-    #third party
     "rest_framework",
     "corsheaders",
     "openai",
