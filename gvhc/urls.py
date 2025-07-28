@@ -36,7 +36,10 @@ def root_view(request):
             "answers": "/api/answers/",
             "grammar": "/api/grammar/",
             "reports": "/api/reports/",
-            "dashboards": "/api/dashboards"
+            "dashboards": "/api/dashboards",
+            "websocket": "/api/websocket/",
+            "foodstation": "/api/foodstation/",
+            "cors_test": "/cors-test/",
         }
     })
 
@@ -52,6 +55,8 @@ urlpatterns = [
     path('api/grammar/', include('calling_monitor.urls')),
     path('api/reports/', include('reports.urls')),
     path('api/dashboards/', include('dashboards.urls')),
-    path("cors-test/", cors_test)
+    path('api/websocket/', include('websocket_app.urls')),
+    path("cors-test/", cors_test),
+    path('api/foodstation/', include('foodstation.urls')),
 ] + static(settings.MEDIA_URL, document_root=settings.MEDIA_ROOT)
 
