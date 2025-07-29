@@ -130,7 +130,6 @@ INSTALLED_APPS = [
     "queues",
     "reports",
     "dashboards",
-    "websocket_app",
     "celery",
     "django_celery_beat",
     "websocket_app",
