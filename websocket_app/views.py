@@ -1,8 +1,30 @@
 #websocket_app/views,py
 from django.http import JsonResponse
 import psutil
+from .fetch_script import fetch_calls_on_hold_data
+import asyncio # Necesario para ejecutar funciones asíncronas en vistas síncronas
 from rest_framework.views import APIView
 from rest_framework.permissions import IsAuthenticated
+
+async def get_calls_on_hold_from_sharpen(request):
+    """
+    Obtiene los datos de las llamadas en espera consultando la API de Sharpen
+    y los devuelve como una respuesta JSON.
+    """
+    try:
+        data = await fetch_calls_on_hold_data()
+        # Sharpen devuelve un objeto con 'getCallsOnHoldData'
+        # Asegúrate de que el formato de la respuesta sea consistente con lo que espera el frontend
+        if data and "getCallsOnHoldData" in data and isinstance(data["getCallsOnHoldData"], list):
+            # Aquí, el 'payload' que estás enviando por WebSocket es `{ "getCallsOnHoldData": [...] }`
+            # Así que el endpoint REST también debería coincidir con eso para consistencia.
+            return JsonResponse({"getCallsOnHoldData": data["getCallsOnHoldData"]})
+        else:
+            # Si Sharpen no devolvió datos válidos, o el formato es incorrecto
+            return JsonResponse({"getCallsOnHoldData": []}, status=200) # Devolver un array vacío pero con 200 OK
+    except Exception as e:
+        print(f"Error al obtener llamadas en espera de Sharpen: {e}")
+        return JsonResponse({"error": "Error al obtener datos de llamadas en espera"}, status=500)
 
 class LiveQueueStatusAPIView(APIView):
     permission_classes = [IsAuthenticated] # Asegúrate de que solo usuarios autenticados puedan acceder
@@ -33,23 +55,4 @@ def system_metrics_view(request):
         "memory_used_mb": round(memory.used / (1024 ** 2), 2),
         "memory_percent": memory.percent,
         "cpu_percent": cpu
-    })
-
-def get_live_queue_status_api(request):
-    """
-    API endpoint para obtener el estado actual de la cola en vivo.
-    """
-    # Aquí obtendrías tus datos de LiveQueueStatusData.
-    # Esto es solo un ejemplo; ajusta la lógica para que coincida con tus datos reales.
-    live_queue_data = [
-        {"QueueName": "Ventas", "commType": "llamadas", "intervals": "0-15s"},
-        {"QueueName": "Soporte", "commType": "chats", "intervals": "15-30s"},
-        # ... más datos
-    ]
-    # Si tus datos vienen de un serializer, puedes serializarlos aquí:
-    # from .serializers import LiveQueueStatusSerializer
-    # live_queue_data = LiveQueueStatusSerializer(QueueStatus.objects.all(), many=True).data
-
-    return JsonResponse({
-        "getLiveQueueStatusData": live_queue_data
     })
