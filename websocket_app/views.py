@@ -1,8 +1,8 @@
 #websocket_app/views,py
 from django.http import JsonResponse
 import psutil
-from .fetch_script import fetch_calls_on_hold_data, fetch_live_queue_status_data
-from asgiref.sync import async_to_sync 
+from .fetch_script import fetch_calls_on_hold_data
+import asyncio # Necesario para ejecutar funciones asíncronas en vistas síncronas
 from rest_framework.views import APIView
 from rest_framework.permissions import IsAuthenticated
 
@@ -27,18 +27,23 @@ async def get_calls_on_hold_from_sharpen(request):
         return JsonResponse({"error": "Error al obtener datos de llamadas en espera"}, status=500)
 
 class LiveQueueStatusAPIView(APIView):
-    permission_classes = [IsAuthenticated]
+    permission_classes = [IsAuthenticated] # Asegúrate de que solo usuarios autenticados puedan acceder
 
-    def get(self, request, *args, **kwargs): # Haz el método 'get' asíncrono
-        try:
-            data = async_to_sync(fetch_live_queue_status_data)() 
-            if data and "getLiveQueueStatusData" in data and isinstance(data["getLiveQueueStatusData"], list):
-                return JsonResponse({"getLiveQueueStatusData": data["getLiveQueueStatusData"]})
-            else:
-                return JsonResponse({"getLiveQueueStatusData": []}, status=200)
-        except Exception as e:
-            print(f"Error al obtener estado de cola en vivo de Sharpen: {e}")
-            return JsonResponse({"error": "Error al obtener datos de estado de cola en vivo"}, status=500)
+    def get(self, request, *args, **kwargs):
+        # Aquí va la lógica para obtener tus datos de LiveQueueStatus
+        # Esto es un placeholder, ajústalo a tu estructura de datos real.
+        # Podrías consultar una base de datos, un caché, etc.
+        sample_data = [
+            {"QueueName": "Ventas Online", "commType": "Llamadas", "intervals": "0-10s"},
+            {"QueueName": "Soporte Técnico", "commType": "Chats", "intervals": "10-30s"},
+            {"QueueName": "Reclamos", "commType": "Llamadas", "intervals": "30-60s"},
+        ]
+        # Si usas un serializer:
+        # queryset = LiveQueueStatusModel.objects.all()
+        # serializer = LiveQueueStatusSerializer(queryset, many=True)
+        # return JsonResponse({"getLiveQueueStatusData": serializer.data})
+
+        return JsonResponse({"getLiveQueueStatusData": sample_data})
 
 def cors_test(request):
     return JsonResponse({"message": "CORS works!"})

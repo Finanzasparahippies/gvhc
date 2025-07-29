@@ -360,7 +360,7 @@ CELERY_ACCEPT_CONTENT = ['json']
 CELERY_TASK_SERIALIZER = 'json'
 CELERY_RESULT_SERIALIZER = 'json'
 CELERY_TIMEZONE = 'America/Hermosillo' # Ajusta tu zona horaria
-CELERY_ENABLE_UTC = True # Si manejas tus horas localmente
+CELERY_ENABLE_UTC = False # Si manejas tus horas localmente
 
 CELERY_BEAT_SCHEDULER = 'django_celery_beat.schedulers:DatabaseScheduler'
 
@@ -371,12 +371,18 @@ CELERY_BEAT_SCHEDULE = {
         'args': (),
         'options': {'queue': 'default'} # Optional: specify a queue if you have multiple
     },
-    'log-system-metrics-every-5-mins': { # New entry for your metrics task
+    'log-system-metrics-every-minute': { # New entry for your metrics task
         'task': 'websocket_app.tasks.log_system_metrics',
-        'schedule': timedelta(minutes=5), # Example: log every minute
+        'schedule': timedelta(minutes=1), # Example: log every minute
         'args': (),
         'options': {'queue': 'default'}
     },
+    'send-order-notification-email': {
+        'task': 'foodstation.tasks.send_order_notification_email',
+        'schedule': timedelta(minutes=1), # Example: send email every minute
+        'args': (),
+        'options': {'queue': 'default'}
+    }
     # You could also schedule the email task if it needs to be run periodically,
     # but typically email notifications are triggered by events (like post_save signal).
 }
