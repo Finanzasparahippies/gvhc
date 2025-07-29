@@ -2,7 +2,7 @@
 
 import httpx
 import json
-
+from urllib.parse import urljoin
 from dashboards.utils import convert_query_times_to_utc, convert_result_datetimes_to_local
 from django.conf import settings 
 
@@ -93,3 +93,31 @@ async def fetch_calls_on_hold_data():
     if data and "error" not in data:
         return data
     return {"getCallsOnHoldData": []}
+
+async def fetch_live_queue_status_data():
+    """
+    Obtiene los datos de Live Queue Status llamando a la API de Sharpen con la consulta SQL avanzada.
+    """
+    endpoint = "V2/query/"
+    # La consulta SQL avanzada que proporcionaste, escapada correctamente.
+    # Nota: Asegúrate de que Sharpen espera 'advanced' como un string JSON escapado.
+    # Si 'q' es suficiente, usa 'q'. Si no, ajusta el payload a lo que Sharpen realmente necesita.
+    # Aquí asumo que 'q' es el campo esperado para la SQL.
+    # Si "advanced" es el campo, el payload debería ser {"advanced": "...", "global": "false"}
+    # La API que pasaste es: `{"advanced":"\"SELECT ... LIMIT 1\"","global":"false"}`
+    # Esto significa que el valor de "advanced" ya es una cadena JSON escapada.
+    # Si _call_sharpen_api_async maneja "advanced" y "global" directamente:
+    payload = {
+        "method": "query", # Necesario si V2/query/ espera esto
+        "q": """SELECT `queue`.`queueName` AS "Queue Name", COUNT(`commType`) AS "Call Count", FROM_UNIXTIME(FLOOR(UNIX_TIMESTAMP(NOW())/(5))*(5)) AS "intervals" FROM `fathomvoice`.`fathomQueues`.`queueCallManager` GROUP BY `Queue Name` UNION (SELECT null, null, FROM_UNIXTIME(FLOOR(UNIX_TIMESTAMP(NOW())/(5))*(5)) AS "intervals") LIMIT 1""",
+        "global": "false" # Esto es parte del payload de la API, no de la SQL
+    }
+    # Asegúrate que el COUNT(`commType`) tenga un alias para que sea una columna con nombre en el JSON.
+    # He añadido "AS \"Call Count\"" como ejemplo. Ajusta el nombre según lo que necesites en el frontend.
+
+    data = await _call_sharpen_api_async(endpoint, payload)
+
+    if data and "error" not in data:
+        # Aquí puedes querer transformar los datos si el formato de Sharpen no es exactamente el que quieres enviar al frontend.
+        return data
+    return {"liveQueueStatus": []} # Devuelve un array vacío si no hay datos o hay error
