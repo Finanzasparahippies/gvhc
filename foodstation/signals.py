@@ -4,6 +4,9 @@ from django.core.mail import send_mail
 from django.conf import settings
 from .models import Order
 from .tasks import send_order_notification_email
+import logging
+
+logger = logging.getLogger(__name__)
 
 @receiver(post_save, sender=Order)
 def notify_vendor_on_order(sender, instance, created, **kwargs):
@@ -17,18 +20,14 @@ def notify_vendor_on_order(sender, instance, created, **kwargs):
             f"Notas: {instance.notes or 'Ninguna'}\n"
             f"Fecha: {instance.created_at}\n"
         )
-        send_mail(
-            subject,
-            message,
-            settings.DEFAULT_FROM_EMAIL,
-            [instance.dish.vendor.contact_email]
-        )
-        instance.sent_to_vendor = True
-        instance.save()
-        print(f"Notificación enviada al vendedor: {instance.dish.vendor.name} sobre el pedido de {instance.user.username}.") 
         
         send_order_notification_email.delay(
             instance.dish.vendor.contact_email,
             subject,
             message
         )
+
+        instance.sent_to_vendor = True
+        instance.save(update_fields=['sent_to_vendor']) # Only update this field for efficiency
+        
+        logger.info(f"Celery task enqueued for vendor notification: {instance.dish.vendor.name} about order from {instance.user.username}.")
