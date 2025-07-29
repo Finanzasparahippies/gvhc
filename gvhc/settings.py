@@ -371,18 +371,12 @@ CELERY_BEAT_SCHEDULE = {
         'args': (),
         'options': {'queue': 'default'} # Optional: specify a queue if you have multiple
     },
-    'log-system-metrics-every-minute': { # New entry for your metrics task
+    'log-system-metrics-every-5-mins': { # New entry for your metrics task
         'task': 'websocket_app.tasks.log_system_metrics',
-        'schedule': timedelta(minutes=1), # Example: log every minute
+        'schedule': timedelta(minutes=5), # Example: log every minute
         'args': (),
         'options': {'queue': 'default'}
     },
-    'send-order-notification-email': {
-        'task': 'foodstation.tasks.send_order_notification_email',
-        'schedule': timedelta(minutes=1), # Example: send email every minute
-        'args': (),
-        'options': {'queue': 'default'}
-    }
     # You could also schedule the email task if it needs to be run periodically,
     # but typically email notifications are triggered by events (like post_save signal).
 }

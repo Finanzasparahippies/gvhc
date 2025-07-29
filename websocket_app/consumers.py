@@ -33,7 +33,7 @@ class CallsConsumer(AsyncWebsocketConsumer):
         )
         logger.info(f"Cliente desconectado del grupo '{self.group_name}' con código: {close_code}.") # Log close_code
 
-    async def send_calls(self, event):
+    async def dataUpdate(self, event):
         """
         Este método es invocado por la tarea de Celery.
         Recibe el payload y lo retransmite al cliente WebSocket en el formato esperado.
@@ -42,7 +42,7 @@ class CallsConsumer(AsyncWebsocketConsumer):
         
         # Formatear el mensaje como lo espera el frontend
         await self.send(text_data=json.dumps({
-            "type": "callsUpdate",  # El tipo de mensaje que el hook de React reconoce
+            "type": "dataUpdate",  # El tipo de mensaje que el hook de React reconoce
             "payload": payload
         }))
         logger.debug(f"Enviando actualización de llamadas al cliente {self.channel_name}. Payload size: {len(json.dumps(payload))} bytes.") # Use debug for verbose data sending
