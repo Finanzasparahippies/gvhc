@@ -55,8 +55,8 @@ urlpatterns = [
     path('api/grammar/', include('calling_monitor.urls')),
     path('api/reports/', include('reports.urls')),
     path('api/dashboards/', include('dashboards.urls')),
-    path('api/websocket/', include('websocket_app.urls')),
     path("cors-test/", cors_test),
+    path('api/websocket/', include('websocket_app.urls')),
     path('api/foodstation/', include('foodstation.urls')),
 ] + static(settings.MEDIA_URL, document_root=settings.MEDIA_ROOT)
 
