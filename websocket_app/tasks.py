@@ -1,30 +1,29 @@
 #websocket_app/task.py
+import logging
+import hashlib
+import json
 from celery import shared_task
 from .fetch_script import fetch_calls_on_hold_data, fetch_live_queue_status_data
 from channels.layers import get_channel_layer
 from asgiref.sync import async_to_sync
-import hashlib
-import json
+from .fetch_script import fetch_calls_on_hold_data
 from .monitoring import get_resource_metrics
-import logging
 
 logger = logging.getLogger(__name__)
 _last_checksum = None  # Guardar el último estado
 _last_live_queue_status_checksum = None
 
-def get_checksum(data_dict, key):
-    # Asegúrate de que el key existe y es una lista para hashing
-    data_to_hash = data_dict.get(key, [])
-    # Convertir a JSON string, ordenar las claves para hashing consistente
-    return hashlib.md5(json.dumps(data_to_hash, sort_keys=True).encode()).hexdigest()
+def get_checksum(data):
+    data_to_hash = data.get('getCallsOnHoldData', [])
+    return hashlib.md5(json.dumps(data_to_hash, sort_keys=True).encode('utf-8')).hexdigest() # Specify encoding
 
 @shared_task
 def broadcast_calls_update():
     global _last_calls_checksum, _last_live_queue_status_checksum
     try:
         channel_layer = get_channel_layer()
-        if channel_layer is None:
-            print("Error: Channel layer not configured.")
+        if not channel_layer:
+            logging.error("Error: Channel layer not configured.")
             return
         
         payload_from_sharpen = async_to_sync(fetch_calls_on_hold_data)()
@@ -48,16 +47,19 @@ def broadcast_calls_update():
                     "payload": payload_from_sharpen 
                 }
             )
-            logger.info("[Celery] Datos de llamadas o cola cambiaron, emitido a clientes.")
+            logging.info("[Celery] Datos cambiaron, emitido a clientes.")
         else:
-            logger.info("[Celery] Sin cambios en llamadas ni cola, no se emitió.")
+            logging.info("[Celery] Sin cambios, no se emitió.")
 
     except Exception as e:
-        logger.error(f"Error en Celery broadcast_all_realtime_updates: {e}", exc_info=True)
+        logging.error("Error en Celery broadcast_calls_update:", e)
 
 
 
 @shared_task
 def log_system_metrics():
-    metrics = get_resource_metrics()
-    logger.info(f"[Metrics] RAM: {metrics['memory_used_mb']} MB ({metrics['memory_percent']}%), CPU: {metrics['cpu_percent']}%")
+    try:
+        metrics = get_resource_metrics()
+        logger.info(f"[Metrics] RAM: {metrics['memory_used_mb']:.2f} MB ({metrics['memory_percent']:.2f}%), CPU: {metrics['cpu_percent']:.2f}%")
+    except Exception as e:
+        logger.exception("Error en Celery log_system_metrics:")

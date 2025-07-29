@@ -2,17 +2,19 @@
 
 import httpx
 import json
-from urllib.parse import urljoin
+from urllib.parse import urljoin # Asegúrate de que esto está importado
+
 from dashboards.utils import convert_query_times_to_utc, convert_result_datetimes_to_local
 from django.conf import settings 
+import logging
 
+logger = logging.getLogger(__name__)
 
 async def _forward_to_sharpen_async(endpoint: str, full_payload: dict):
     """Función base que realiza la llamada asíncrona a Sharpen."""
-    from urllib.parse import urljoin # Add this import if not already there
 
     url = urljoin(settings.SHARPEN_API_BASE_URL, endpoint)
-    print(f"DEBUG: Llamando a Sharpen URL: {url}")
+    logger.debug(f"DEBUG: Llamando a Sharpen URL: {url} con payload: {json.dumps(full_payload)}") # Añadir payload al log
     try:
         async with httpx.AsyncClient() as client:
             response = await client.post(url, json=full_payload, timeout=30.0)
@@ -21,14 +23,15 @@ async def _forward_to_sharpen_async(endpoint: str, full_payload: dict):
             # Procesamos la respuesta para convertir fechas, etc.
             result = response.json()
             processed_result = convert_result_datetimes_to_local(result)
+            logger.debug(f"DEBUG: Respuesta de Sharpen para {endpoint}: {json.dumps(processed_result)}") # Log de la respuesta
             return processed_result
             
     except httpx.HTTPStatusError as e:
-        print(f"Service Error: HTTP Status {e.response.status_code} from Sharpen: {e.response.text}")
+        logger.error(f"Service Error: HTTP Status {e.response.status_code} from Sharpen: {e.response.text}")
         # Devuelve el error para que la vista pueda manejarlo
         return {"error": e.response.text, "status_code": e.response.status_code}
     except Exception as e:
-        print(f"Service Error: Unexpected error forwarding to Sharpen: {e}")
+        logger.error(f"Service Error: Unexpected error forwarding to Sharpen: {e}")
         return {"error": str(e), "status_code": 500}
 
 
@@ -92,6 +95,7 @@ async def fetch_calls_on_hold_data():
 
     if data and "error" not in data:
         return data
+    logger.warning("No data or error received from Sharpen for getCallsOnHoldData. Returning empty.")
     return {"getCallsOnHoldData": []}
 
 async def fetch_live_queue_status_data():

@@ -130,9 +130,11 @@ INSTALLED_APPS = [
     "queues",
     "reports",
     "dashboards",
+    "celery",
     "django_celery_beat",
     "websocket_app",
     "channels",
+    "foodstation",
     #third party
     "rest_framework",
     "corsheaders",
@@ -354,20 +356,35 @@ MEDIA_ROOT = os.path.join(BASE_DIR, 'media/')
 
 CELERY_BROKER_URL = REDIS_URL
 CELERY_RESULT_BACKEND = REDIS_URL
-CELERY_IMPORTS = ('websocket_app.tasks',) # Or CELERY_INCLUDE = ['websocket_app.tasks'] if using Celery 4.x+ preferred syntax
 CELERY_ACCEPT_CONTENT = ['json']
 CELERY_TASK_SERIALIZER = 'json'
 CELERY_RESULT_SERIALIZER = 'json'
 CELERY_TIMEZONE = 'America/Hermosillo' # Ajusta tu zona horaria
 CELERY_ENABLE_UTC = False # Si manejas tus horas localmente
 
-CELERY_BEAT_SCHEDULE_FILENAME = "/data/celerybeat-schedule"
+CELERY_BEAT_SCHEDULER = 'django_celery_beat.schedulers:DatabaseScheduler'
+
 CELERY_BEAT_SCHEDULE = {
-    'broadcast-every-5-seconds': {
+    'broadcast-calls-update-every-5-seconds': { # Give a more descriptive name
         'task': 'websocket_app.tasks.broadcast_calls_update',
-        'schedule': 5.0,
+        'schedule': timedelta(seconds=5), # Use timedelta for clarity
         'args': (),
+        'options': {'queue': 'default'} # Optional: specify a queue if you have multiple
     },
+    'log-system-metrics-every-minute': { # New entry for your metrics task
+        'task': 'websocket_app.tasks.log_system_metrics',
+        'schedule': timedelta(minutes=1), # Example: log every minute
+        'args': (),
+        'options': {'queue': 'default'}
+    },
+    'send-order-notification-email': {
+        'task': 'foodstation.tasks.send_order_notification_email',
+        'schedule': timedelta(minutes=1), # Example: send email every minute
+        'args': (),
+        'options': {'queue': 'default'}
+    }
+    # You could also schedule the email task if it needs to be run periodically,
+    # but typically email notifications are triggered by events (like post_save signal).
 }
 
 print(f"FINAL REDIS URL: {REDIS_URL}")
