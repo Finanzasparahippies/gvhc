@@ -378,6 +378,12 @@ CELERY_BEAT_SCHEDULE = {
         'args': (),
         'options': {'queue': 'default'}
     },
+    'update-agent-gamification-scores-every-hour': { # Nombre descriptivo para Celery Beat
+        'task': 'users.tasks.update_agent_gamification_scores', # Asegúrate que el path sea correcto
+        'schedule': timedelta(hours=1), # Ajusta la frecuencia (ej: cada hora, cada día, etc.)
+        'args': (),
+        'options': {'queue': 'gamification'}
+    },
     # You could also schedule the email task if it needs to be run periodically,
     # but typically email notifications are triggered by events (like post_save signal).
 }
