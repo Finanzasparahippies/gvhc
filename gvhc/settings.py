@@ -361,6 +361,7 @@ CELERY_TASK_SERIALIZER = 'json'
 CELERY_RESULT_SERIALIZER = 'json'
 CELERY_TIMEZONE = 'America/Hermosillo' # Ajusta tu zona horaria
 CELERY_ENABLE_UTC = False # Si manejas tus horas localmente
+CELERY_IMPORTS = ('websocket_app.tasks',) # Or 'websocket_app.task' if that's the filename
 
 CELERY_BEAT_SCHEDULER = 'django_celery_beat.schedulers:DatabaseScheduler'
 
