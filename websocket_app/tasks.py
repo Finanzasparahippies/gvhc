@@ -3,13 +3,13 @@ import logging
 import hashlib
 import json
 from celery import shared_task
-from .fetch_script import fetch_calls_on_hold_data, fetch_live_queue_status_data
+from .fetch_script import fetch_calls_on_hold_data, fetch_live_queue_status_data, fetch_agent_performance_data 
 from users.models import User  # Importa tu modelo de usuario
 from django.db import transaction
 from django.utils import timezone
+from django.db.models import F # Para actualizaciones atómicas y seguras
 from channels.layers import get_channel_layer
 from asgiref.sync import async_to_sync
-from .fetch_script import fetch_calls_on_hold_data
 from .monitoring import get_resource_metrics
 
 logger = logging.getLogger(__name__)
@@ -61,80 +61,71 @@ def update_agent_gamification_scores():
         for agent_data in sharpen_agent_data:
             sharpen_username = agent_data.get('username') # Clave 'username' del resultado de Sharpen
             
-            # Si Sharpen retorna directamente un Call I D reciente o un contador de llamadas
-            # que puedes usar para detectar nuevas llamadas procesadas desde la última vez.
-            # Por ahora, nos basaremos en los datos totales que trae `fetch_agent_performance_data`
-            # y recalcularemos los puntos cada vez, lo cual es más simple inicialmente.
-
+            if not sharpen_agent_data:
+                logger.warning("No se recibieron datos de agentes de Sharpen. Saltando actualización de gamificación.")
+                return
             if not sharpen_username:
                 logger.warning(f"Dato de agente de Sharpen sin 'username'. Saltando: {agent_data}")
                 continue
 
             try:
                 # Usar select_for_update() para evitar condiciones de carrera al actualizar puntos
-                with transaction.atomic():
-                    user = User.objects.select_for_update().get(sharpen_username=sharpen_username)
+                user, created = User.objects.get_or_create(
+                    sharpen_username=sharpen_username,
+                    defaults={
+                        'username': sharpen_username,
+                        'email': f'{sharpen_username.replace(".", "")}@example.com', # Genera un email válido
+                        'first_name': sharpen_username.split('.')[0].capitalize() if '.' in sharpen_username else '',
+                        'last_name': sharpen_username.split('.')[1].capitalize() if '.' in sharpen_username else '',
+                        'role': 'agent',
+                        # Estos campos se inicializarán a 0 por defecto, pero se sobrescribirán en la primera ronda
+                        # 'last_calls_handled': 0, 
+                        # 'last_quality_score': 0.0,
+                        # 'last_resolution_rate': 0.0,
+                    }
+                )
 
-                    # Calcula los puntos para esta ronda de actualización.
-                    # Aquí es donde decides cómo tus métricas de Sharpen se traducen en puntos.
-                    
-                    # Para evitar sumar puntos repetidamente por las mismas métricas
-                    # (ej. 10 puntos por 'calls_handled_today' cada vez que corre la tarea),
-                    # necesitas una forma de saber si ya los has contado.
-                    # La forma más robusta es que Sharpen te dé métricas "incrementales" o
-                    # que tú guardes el estado anterior de la métrica en tu modelo User.
-
-                    # Para un inicio simple, puedes otorgar puntos basándote en un **cambio**
-                    # en las métricas desde la última vez, o puntos por el total *acumulado*
-                    # si las métricas de Sharpen se resetean diariamente.
-
-                    # VAMOS A USAR UN ENFOQUE BASADO EN CAMBIOS PARA UN EJEMPLO MÁS ROBUSTO:
-                    # Añade estos campos a tu modelo User si no los tienes:
-                    # last_calls_handled_today = models.IntegerField(default=0)
-                    # last_quality_score = models.IntegerField(default=0) # O FloatField
-
+                with transaction.atomic():  
+                    user.refresh_from_db() 
                     points_for_this_agent_round = 0
                     current_calls_handled = agent_data.get('calls_handled_today', 0)
-                    current_quality_score = agent_data.get('quality_score', 0)
-                    current_resolution_rate = agent_data.get('issue_resolution_rate', 0)
+                    current_quality_score = agent_data.get('quality_score', 0.0)
+                    current_resolution_rate = agent_data.get('issue_resolution_rate', 0.0)
 
-                    # Puntos por llamadas nuevas manejadas (si las métricas de Sharpen son diarias/incrementales)
-                    # Si Sharpen te da el TOTAL de llamadas manejadas HOY, y quieres puntos por llamadas *nuevas* desde la última ejecución:
-                    # (Esto requiere que guardes el 'calls_handled_today' de Sharpen del AGENTE la última vez)
-                    
-                    # Asumiendo que `agent_data['calls_handled_today']` es el *total* para hoy:
-                    # Una forma de manejar esto es dar puntos basados en la diferencia con el total acumulado
-                    # en tu modelo `User.total_calls_handled`
-                    
-                    # Opción 1: Sumar puntos basados en la diferencia de llamadas manejadas desde la última vez
+                    # --- Lógica de Puntos Incremental ---
+                    if created or not user.first_processed_gamification_data:
+                        points_for_this_agent_round += GAMIFICATION_RULES['first_time_processing_bonus']
+                        user.first_processed_gamification_data = True
+                        logger.info(f"Agente {sharpen_username}: +{GAMIFICATION_RULES['first_time_processing_bonus']} por bono de primera vez/nuevo agente.")
+
                     new_calls = current_calls_handled - user.total_calls_handled
                     if new_calls > 0:
                         points_for_this_agent_round += new_calls * GAMIFICATION_RULES['call_completed']
                         logger.debug(f"Agente {sharpen_username}: +{new_calls * GAMIFICATION_RULES['call_completed']} por {new_calls} nuevas llamadas.")
-                        user.total_calls_handled = current_calls_handled # Actualiza el total en tu modelo
-                        
-                    # Opción 2: Bono por calidad (ejemplo)
-                    # Si el quality_score es la media acumulada, podríamos dar puntos si sube
-                    # O si excede un umbral. Aquí, un bono simple por superar cierto score.
-                    if current_quality_score >= 90 and user.last_quality_score < 90: # Solo una vez que cruza el umbral
-                         points_for_this_agent_round += (current_quality_score - user.last_quality_score) * GAMIFICATION_RULES['high_quality_score_bonus_per_point'] # Da puntos por cada punto de calidad superior
-                         logger.debug(f"Agente {sharpen_username}: +{ (current_quality_score - user.last_quality_score) * GAMIFICATION_RULES['high_quality_score_bonus_per_point']} por mejora/mantenimiento de calidad.")
-                         user.last_quality_score = current_quality_score
-                    
+
+                    if current_quality_score > user.last_quality_score and current_quality_score >= GAMIFICATION_RULES['quality_threshold_for_bonus']:
+                        points_diff = current_quality_score - user.last_quality_score
+                        if points_diff > 0:
+                            points_to_add = int(points_diff * GAMIFICATION_RULES['quality_bonus_per_point'])
+                            points_for_this_agent_round += points_to_add
+                            logger.debug(f"Agente {sharpen_username}: +{points_to_add} por mejora de calidad (de {user.last_quality_score:.1f} a {current_quality_score:.1f}).")
+                    elif current_quality_score >= GAMIFICATION_RULES['quality_threshold_for_bonus'] and user.last_quality_score < GAMIFICATION_RULES['quality_threshold_for_bonus']:
+                        # Bono por cruzar el umbral por primera vez
+                        points_for_this_agent_round += GAMIFICATION_RULES['quality_bonus_per_point'] * 5 # Bono inicial al cruzar el umbral, ej. 5 puntos extra
+                        logger.debug(f"Agente {sharpen_username}: +{GAMIFICATION_RULES['quality_bonus_per_point'] * 5} por cruzar umbral de calidad.")
+
                     # Opción 3: Bono por tasa de resolución
-                    if current_resolution_rate >= GAMIFICATION_RULES['good_resolution_rate_threshold'] and user.last_resolution_rate < GAMIFICATION_RULES['good_resolution_rate_threshold']:
-                        points_for_this_agent_round += GAMIFICATION_RULES['good_resolution_rate_bonus']
-                        logger.debug(f"Agente {sharpen_username}: +{GAMIFICATION_RULES['good_resolution_rate_bonus']} por alta tasa de resolución.")
-                        user.last_resolution_rate = current_resolution_rate # Asegúrate de tener este campo en tu User model
+                    if current_resolution_rate >= GAMIFICATION_RULES['good_resolution_rate_threshold'] and \
+                        user.last_resolution_rate < GAMIFICATION_RULES['good_resolution_rate_threshold']:
+                        points_for_this_agent_round += GAMIFICATION_RULES['resolution_rate_bonus']
+                        logger.debug(f"Agente {sharpen_username}: +{GAMIFICATION_RULES['resolution_rate_bonus']} por alcanzar alta tasa de resolución.")
 
-
-                    # Si es la primera vez que procesamos este agente y ya tiene datos, dale un bono de inicio
-                    # Esto requiere un flag `is_new_agent_processed` en tu User model
-                    # if not user.first_processed_gamification_data:
-                    #     points_for_this_agent_round += GAMIFICATION_RULES['new_agent_bonus']
-                    #     user.first_processed_gamification_data = True
-                    #     logger.debug(f"Agente {sharpen_username}: +{GAMIFICATION_RULES['new_agent_bonus']} por bono de nuevo agente.")
-
+                    # Añadir puntos al usuario si hay alguno
+                    if points_for_this_agent_round > 0:
+                        user.add_points(points_for_this_agent_round) # add_points ya usa F() y check_level_up()
+                        logger.info(f"Agregados {points_for_this_agent_round} puntos a {user.username}. Total: {user.gamification_points}. Nivel: {user.gamification_level}")
+                    else:
+                        logger.debug(f"No hay puntos que añadir para {user.username} en esta ronda.")
 
                     if points_for_this_agent_round > 0:
                         user.add_points(points_for_this_agent_round)
@@ -143,7 +134,13 @@ def update_agent_gamification_scores():
                         logger.info(f"Agregados {points_for_this_agent_round} puntos a {user.username}. Total: {user.gamification_points}. Nivel: {user.gamification_level}")
                     else:
                         logger.debug(f"No hay puntos que añadir para {user.username} en esta ronda.")
-
+                    
+                    user.last_calls_handled = current_calls_handled
+                    user.last_quality_score = current_quality_score
+                    user.last_resolution_rate = current_resolution_rate
+                    user.last_point_update = timezone.now()
+                    user.save(update_fields=['last_calls_handled', 'last_quality_score', 'last_resolution_rate', 
+                                            'last_point_update', 'first_processed_gamification_data'])
             except User.DoesNotExist:
                 logger.warning(f"Usuario Django no encontrado para Sharpen username: {sharpen_username}. Saltando.")
             except Exception as e:

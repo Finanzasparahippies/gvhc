@@ -1,6 +1,9 @@
 # users/models.py
 from django.contrib.auth.models import AbstractUser
 from django.db import models
+from django.db.models import F # ¡Importante para actualizaciones atómicas!
+from channels.layers import get_channel_layer # Necesario para notificaciones WebSocket
+from asgiref.sync import async_to_sync # Necesario para notificaciones WebSocket
 from django.utils import timezone # Importa timezone
 import logging
 
@@ -83,26 +86,23 @@ class User(AbstractUser):
             old_level = self.gamification_level
             self.gamification_level = new_level
             self.save(update_fields=['gamification_level'])
-            print(f"¡{self.username} subió al nivel {self.gamification_level}!")
+            logger.info(f"¡{self.username} subió del nivel {old_level} al {self.gamification_level}!")
             # TODO: Considera emitir un evento de WebSocket aquí para notificar al frontend
-            # Para esto, necesitarías:
-            # from channels.layers import get_channel_layer
-            # from asgiref.sync import async_to_sync
-            # channel_layer = get_channel_layer()
-            # if channel_layer:
-            #     async_to_sync(channel_layer.group_send)(
-            #         f"user_{self.id}", # O un grupo global si quieres que todos vean las notificaciones de subida de nivel
-            #         {
-            #             "type": "gamification_level_up", # Un tipo de evento que tu consumer reconozca
-            #             "payload": {
-            #                 "user_id": self.id,
-            #                 "username": self.username,
-            #                 "old_level": old_level,
-            #                 "new_level": self.gamification_level,
-            #                 "message": f"¡Felicidades, {self.username}! Has subido al nivel {self.gamification_level}."
-            #             }
-            #         }
-            #     )
+            channel_layer = get_channel_layer()
+            if channel_layer:
+                async_to_sync(channel_layer.group_send)(
+                    f"user_{self.id}", # Grupo específico para el usuario o un grupo general como "gamification_updates"
+                    {
+                        "type": "gamification_level_up",
+                        "payload": {
+                            "user_id": self.id,
+                            "username": self.username,
+                            "old_level": old_level,
+                            "new_level": self.gamification_level,
+                            "message": f"¡Felicidades, {self.username}! Has subido al nivel {self.gamification_level}."
+                        }
+                    }
+                )
             return True
         return False
 

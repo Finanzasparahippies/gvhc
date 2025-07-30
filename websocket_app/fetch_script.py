@@ -7,6 +7,8 @@ from urllib.parse import urljoin # Asegúrate de que esto está importado
 from dashboards.utils import convert_query_times_to_utc, convert_result_datetimes_to_local
 from django.conf import settings 
 import logging
+import datetime # Necesario para calcular rangos de fecha/hora si la API lo pide
+from django.utils import timezone # Para manejar zonas horarias y fechas actuales
 
 logger = logging.getLogger(__name__)
 
@@ -87,45 +89,32 @@ async def fetch_agent_performance_data():
     Esto puede requerir un endpoint específico o una consulta SQL avanzada.
     """
     endpoint = "V2/query/" # Asumiendo que usarás V2/query/ con SQL para esto
+    today_utc = timezone.now().astimezone(timezone.utc).strftime('%Y-%m-%d')
 
-    # Define la consulta SQL para obtener las métricas de rendimiento de los agentes.
-    # Necesitas saber qué tablas y campos de Sharpen contienen estos datos.
-    # Este es un EJEMPLO. Deberás ajustarlo a tu estructura de datos real de Sharpen.
-    # Asumo que 'fathomvoice.fathomQueues.queueCallManager' tiene información por agente.
-    # O tal vez hay una tabla de agentes o métricas de usuario.
+    sql_query = f"""
+        SELECT
+            T1.`username` AS "username",
+            COUNT(T2.`queueCallManagerID`) AS "calls_handled_today",
+            AVG(T2.`qualityScore`) AS "quality_score", -- **Confirmar si 'qualityScore' existe en queueCDR**
+            AVG(T2.`issueResolutionRate`) AS "issue_resolution_rate" -- **Confirmar si 'issueResolutionRate' existe en queueCDR**
+        FROM
+            `fathomvoice`.`fathomQueues`.`queueAgents` AS T1
+        LEFT JOIN
+            `fathomvoice`.`fathomQueues`.`queueCDR` AS T2
+            ON T1.`username` = T2.`agentName` -- Asumiendo que agentName en CDR es el username
+            AND DATE(T2.`answerTime`) = '{today_utc}' -- Filtrar por llamadas de hoy
+        WHERE
+            T1.`status` != 'offline' -- Considerar solo agentes activos o no offline
+        GROUP BY
+            T1.`username`
+        ORDER BY
+            T1.`username`
+    """
     
-    # MUY IMPORTANTE: La consulta SQL debe retornar los campos que necesitas
-    # para tu lógica de puntos (ej. 'Username', 'CallsHandled', 'QualityScore').
-    # Asegúrate de que los alias (AS "...") coincidan con las claves que esperas en Python.
-    
-    # La consulta que tienes en el comentario de tu código:
-    # "username": "juan.perez", "calls_handled_today": 5, "quality_score": 90
-    # Esto implica que necesitas obtener esos datos de Sharpen.
-    
-    # EJEMPLO DE CONSULTA (ADAPTA ESTO A LO QUE SHARPEN PUEDA DARTE):
-    # Si Sharpen tiene un endpoint o una vista para métricas de agentes individuales:
-    # payload = {} # O algún payload si el endpoint es directo
-    # data = await _call_sharpen_api_async("V2/agents/getPerformanceMetrics/", payload)
-    
-    # Si usas V2/query/ con SQL:
     payload = {
         "method": "query",
-        "q": """
-            SELECT
-                `agent_metrics`.`agentUsername` AS "username",
-                COUNT(`calls`.`callId`) AS "calls_handled_today",
-                AVG(`calls`.`qualityScore`) AS "quality_score",
-                AVG(`calls`.`issueResolutionRate`) AS "issue_resolution_rate"
-            FROM
-                `fathomvoice`.`fathomQueues`.`agent_metrics` AS agent_metrics
-            LEFT JOIN
-                `fathomvoice`.`fathomQueues`.`calls` AS calls ON agent_metrics.agentId = calls.agentId
-            WHERE
-                DATE(`calls`.`callDate`) = CURDATE() -- O algún filtro de tiempo
-            GROUP BY
-                "username"
-        """,
-        "global": "false"
+        "q": sql_query,
+        "global": False # Si el contexto es global o no para Sharpen
     }
 
     try:
@@ -140,16 +129,32 @@ async def fetch_agent_performance_data():
                 agent_dict = {}
                 for i, value in enumerate(row):
                     if i < len(columns):
-                        agent_dict[columns[i]] = value
+                        if columns[i] in ['quality_score', 'issue_resolution_rate'] and value is not None:
+                            try:
+                                agent_dict[columns[i]] = float(value)
+                            except ValueError:
+                                agent_dict[columns[i]] = 0.0 # Valor por defecto si la conversión falla
+                        elif columns[i] == 'calls_handled_today' and value is not None:
+                            try:
+                                agent_dict[columns[i]] = int(value)
+                            except ValueError:
+                                agent_dict[columns[i]] = 0
+                        else:
+                            agent_dict[columns[i]] = value
                 parsed_data.append(agent_dict)
             
-            logger.debug(f"Datos de rendimiento de agentes de Sharpen: {parsed_data}")
+            for agent in parsed_data:
+                agent['calls_handled_today'] = agent.get('calls_handled_today') or 0
+                agent['quality_score'] = agent.get('quality_score') or 0.0
+                agent['issue_resolution_rate'] = agent.get('issue_resolution_rate') or 0.0
+
+            logger.info(f"Fetched {len(parsed_data)} agents performance data from Sharpen via SQL.")
             return parsed_data
         
-        logger.warning("No se recibieron datos o hubo un error de Sharpen para el rendimiento de agentes. Retornando vacío.")
+        logger.warning(f"No se recibieron datos de rendimiento de agentes de Sharpen o hubo un error: {data.get('error', 'Desconocido')}. Retornando vacío.")
         return []
     except Exception as e:
-        logger.error(f"Error al obtener datos de rendimiento de Sharpen: {e}")
+        logger.error(f"Error al obtener datos de rendimiento de Sharpen: {e}", exc_info=True)
         return []
 
 # Esta función ahora contiene la lógica para hablar con la API externa
@@ -174,25 +179,41 @@ async def fetch_live_queue_status_data():
     Obtiene los datos de Live Queue Status llamando a la API de Sharpen con la consulta SQL avanzada.
     """
     endpoint = "V2/query/"
-    # La consulta SQL avanzada que proporcionaste, escapada correctamente.
-    # Nota: Asegúrate de que Sharpen espera 'advanced' como un string JSON escapado.
-    # Si 'q' es suficiente, usa 'q'. Si no, ajusta el payload a lo que Sharpen realmente necesita.
-    # Aquí asumo que 'q' es el campo esperado para la SQL.
-    # Si "advanced" es el campo, el payload debería ser {"advanced": "...", "global": "false"}
-    # La API que pasaste es: `{"advanced":"\"SELECT ... LIMIT 1\"","global":"false"}`
-    # Esto significa que el valor de "advanced" ya es una cadena JSON escapada.
-    # Si _call_sharpen_api_async maneja "advanced" y "global" directamente:
+
+    sql_query = """
+        SELECT 
+            `queue`.`queueName` AS "Queue Name", 
+            COUNT(`commType`) AS "Call Count", 
+            FROM_UNIXTIME(FLOOR(UNIX_TIMESTAMP(NOW())/(5))*(5)) AS "intervals" 
+        FROM 
+            `fathomvoice`.`fathomQueues`.`queueCallManager` 
+        GROUP BY 
+            `Queue Name` 
+        UNION ALL -- Usar UNION ALL si quieres todas las filas de ambos selects
+        SELECT 
+            null, null, FROM_UNIXTIME(FLOOR(UNIX_TIMESTAMP(NOW())/(5))*(5)) AS "intervals"
+        LIMIT 1 -- Este LIMIT solo aplica al segundo SELECT, si se usa UNION ALL
+    """
+
     payload = {
-        "method": "query", # Necesario si V2/query/ espera esto
-        "q": """SELECT `queue`.`queueName` AS "Queue Name", COUNT(`commType`) AS "Call Count", FROM_UNIXTIME(FLOOR(UNIX_TIMESTAMP(NOW())/(5))*(5)) AS "intervals" FROM `fathomvoice`.`fathomQueues`.`queueCallManager` GROUP BY `Queue Name` UNION (SELECT null, null, FROM_UNIXTIME(FLOOR(UNIX_TIMESTAMP(NOW())/(5))*(5)) AS "intervals") LIMIT 1""",
-        "global": "false" # Esto es parte del payload de la API, no de la SQL
+        "method": "query",
+        "q": sql_query,
+        "global": False 
     }
     # Asegúrate que el COUNT(`commType`) tenga un alias para que sea una columna con nombre en el JSON.
     # He añadido "AS \"Call Count\"" como ejemplo. Ajusta el nombre según lo que necesites en el frontend.
 
     data = await _call_sharpen_api_async(endpoint, payload)
 
-    if data and "error" not in data:
-        # Aquí puedes querer transformar los datos si el formato de Sharpen no es exactamente el que quieres enviar al frontend.
-        return data
-    return {"liveQueueStatus": []} # Devuelve un array vacío si no hay datos o hay error
+    if data and "error" not in data and "rows" in data:
+        # Parsear los resultados de V2/query/ de 'rows' y 'columns'
+        parsed_data = []
+        columns = [col['name'] for col in data.get('columns', [])]
+        for row in data['rows']:
+            row_dict = {}
+            for i, value in enumerate(row):
+                if i < len(columns):
+                    row_dict[columns[i]] = value
+            parsed_data.append(row_dict)
+        return {"liveQueueStatus": parsed_data} # Envuelve en el dict esperado por tu consumer
+    return {"liveQueueStatus": []}
