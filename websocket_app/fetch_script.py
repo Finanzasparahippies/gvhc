@@ -80,6 +80,77 @@ async def _call_sharpen_api_async(endpoint: str, payload: dict):
     else:
         full_payload = {**auth_payload, **payload}
         return await _forward_to_sharpen_async(endpoint, full_payload)
+    
+async def fetch_agent_performance_data():
+    """
+    Obtiene los datos de rendimiento de los agentes de Sharpen para gamificación.
+    Esto puede requerir un endpoint específico o una consulta SQL avanzada.
+    """
+    endpoint = "V2/query/" # Asumiendo que usarás V2/query/ con SQL para esto
+
+    # Define la consulta SQL para obtener las métricas de rendimiento de los agentes.
+    # Necesitas saber qué tablas y campos de Sharpen contienen estos datos.
+    # Este es un EJEMPLO. Deberás ajustarlo a tu estructura de datos real de Sharpen.
+    # Asumo que 'fathomvoice.fathomQueues.queueCallManager' tiene información por agente.
+    # O tal vez hay una tabla de agentes o métricas de usuario.
+    
+    # MUY IMPORTANTE: La consulta SQL debe retornar los campos que necesitas
+    # para tu lógica de puntos (ej. 'Username', 'CallsHandled', 'QualityScore').
+    # Asegúrate de que los alias (AS "...") coincidan con las claves que esperas en Python.
+    
+    # La consulta que tienes en el comentario de tu código:
+    # "username": "juan.perez", "calls_handled_today": 5, "quality_score": 90
+    # Esto implica que necesitas obtener esos datos de Sharpen.
+    
+    # EJEMPLO DE CONSULTA (ADAPTA ESTO A LO QUE SHARPEN PUEDA DARTE):
+    # Si Sharpen tiene un endpoint o una vista para métricas de agentes individuales:
+    # payload = {} # O algún payload si el endpoint es directo
+    # data = await _call_sharpen_api_async("V2/agents/getPerformanceMetrics/", payload)
+    
+    # Si usas V2/query/ con SQL:
+    payload = {
+        "method": "query",
+        "q": """
+            SELECT
+                `agent_metrics`.`agentUsername` AS "username",
+                COUNT(`calls`.`callId`) AS "calls_handled_today",
+                AVG(`calls`.`qualityScore`) AS "quality_score",
+                AVG(`calls`.`issueResolutionRate`) AS "issue_resolution_rate"
+            FROM
+                `fathomvoice`.`fathomQueues`.`agent_metrics` AS agent_metrics
+            LEFT JOIN
+                `fathomvoice`.`fathomQueues`.`calls` AS calls ON agent_metrics.agentId = calls.agentId
+            WHERE
+                DATE(`calls`.`callDate`) = CURDATE() -- O algún filtro de tiempo
+            GROUP BY
+                "username"
+        """,
+        "global": "false"
+    }
+
+    try:
+        data = await _call_sharpen_api_async(endpoint, payload)
+
+        if data and "error" not in data and "rows" in data: # Asumiendo que los resultados de V2/query/ vienen en 'rows'
+            # Sharpen's V2/query/ often returns data in a 'rows' list with 'columns'
+            # You'll need to parse this into a list of dictionaries for easier use.
+            parsed_data = []
+            columns = [col['name'] for col in data.get('columns', [])]
+            for row in data['rows']:
+                agent_dict = {}
+                for i, value in enumerate(row):
+                    if i < len(columns):
+                        agent_dict[columns[i]] = value
+                parsed_data.append(agent_dict)
+            
+            logger.debug(f"Datos de rendimiento de agentes de Sharpen: {parsed_data}")
+            return parsed_data
+        
+        logger.warning("No se recibieron datos o hubo un error de Sharpen para el rendimiento de agentes. Retornando vacío.")
+        return []
+    except Exception as e:
+        logger.error(f"Error al obtener datos de rendimiento de Sharpen: {e}")
+        return []
 
 # Esta función ahora contiene la lógica para hablar con la API externa
 async def fetch_calls_on_hold_data():

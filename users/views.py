@@ -1,13 +1,15 @@
 # users/views.py
-from rest_framework.views import APIView
+from rest_framework import generics, permissions
 from rest_framework.response import Response
+from rest_framework.views import APIView
 from rest_framework_simplejwt.tokens import RefreshToken
 from .models import User # Renombra si tienes conflicto con django.contrib.auth.models.User
+from .serializers import UserSerializer
 import logging
+from django.db.models import F
 # from django.contrib.auth.models import User 
 from django.contrib.auth import authenticate
 from rest_framework.permissions import IsAuthenticated
-from .serializers import UserSerializer
 from django.http import JsonResponse
 from rest_framework_simplejwt.views import TokenObtainPairView
 from .serializers import MyTokenObtainPairSerializer
@@ -60,3 +62,37 @@ class MyTokenObtainPairView(TokenObtainPairView):
     serializer_class = MyTokenObtainPairSerializer
 
     logger.info(f"MyTokenObtainPairView loaded with serializer: {serializer_class}")
+
+class AgentGamificationListView(generics.ListAPIView):
+    """
+    API para listar a todos los agentes con sus puntos y niveles de gamificación.
+    Solo accesible por administradores o supervisores.
+    """
+    queryset = User.objects.filter(is_staff=True).order_by('-gamification_points') # O filtrar por un rol específico de agente
+    serializer_class = UserSerializer # Asegúrate que este serializer incluya gamification_points y gamification_level
+    permission_classes = [permissions.IsAuthenticated] # O IsAdminUser/IsSupervisor
+
+    def get_queryset(self):
+        # Si quieres filtrar solo por agentes, ajusta esto.
+        # Por ejemplo, podrías tener un campo 'is_agent' en tu modelo User.
+        return super().get_queryset()
+
+class MyGamificationDetailView(generics.RetrieveAPIView):
+    """
+    API para que un agente vea sus propios puntos y nivel de gamificación.
+    """
+    serializer_class = UserSerializer
+    permission_classes = [permissions.IsAuthenticated]
+
+    def get_object(self):
+        return self.request.user # Devuelve el usuario actualmente autenticado
+
+class GamificationLeaderboardView(generics.ListAPIView):
+    """
+    API para mostrar la tabla de clasificación de agentes por puntos.
+    """
+    queryset = User.objects.filter(gamification_level__gt=0).order_by('-gamification_points', 'username')
+    serializer_class = UserSerializer
+    permission_classes = [permissions.IsAuthenticated] # O IsAuthenticatedOrReadOnly si es público
+    # Podrías añadir paginación si hay muchos usuarios:
+    # pagination_class = YourCustomPaginationClass # Define una paginación si es necesario

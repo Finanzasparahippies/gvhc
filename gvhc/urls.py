@@ -32,7 +32,7 @@ def root_view(request):
         "message": "Bienvenido a la API de GVHC",
         "available_endpoints": {
             "tokens": "/api/token/",
-            "users": "/api/",
+            "users": "/api/users",
             "answers": "/api/answers/",
             "grammar": "/api/grammar/",
             "reports": "/api/reports/",
@@ -50,7 +50,7 @@ urlpatterns = [
     path('api/token/refresh/', TokenRefreshView.as_view(), name='token_refresh'),
     path('api/token/verify/', TokenVerifyView.as_view(), name='token_verify'),
     path("admin/", admin.site.urls),
-    path('api/', include('users.urls')),
+    path('api/users/', include('users.urls')),
     path('api/', include('faqs.urls') ),
     path('api/grammar/', include('calling_monitor.urls')),
     path('api/reports/', include('reports.urls')),
