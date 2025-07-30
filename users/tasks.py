@@ -8,26 +8,6 @@ import time # Para simular retardo si es necesario
 
 logger = logging.getLogger(__name__)
 
-# Necesitas una función para obtener datos específicos de rendimiento de agentes de Sharpen
-# Esto es un placeholder; la implementación real dependerá de la API de Sharpen
-async def fetch_agent_performance_data():
-    # Esta función debería llamar a la API de Sharpen para obtener métricas de agentes
-    # Por ejemplo, número de llamadas manejadas, tiempo promedio de manejo, etc.
-    # Podrías usar un endpoint como el que usaste para 'getAgents'
-    # y filtrar por los datos relevantes para la gamificación.
-    # Retornaría una lista de diccionarios, ej:
-    # [{"sharpen_username": "agente1", "calls_handled_today": 10, "avg_talk_time": 180}, ...]
-    
-    # Placeholder: Simula datos de Sharpen
-    logger.info("Simulando fetch_agent_performance_data de Sharpen...")
-    await time.sleep(1) # Simular latencia de API
-    return [
-        {"username": "juan.perez", "calls_handled_today": 5, "quality_score": 90, "issue_resolution_rate": 0.8},
-        {"username": "maria.gonzalez", "calls_handled_today": 8, "quality_score": 95, "issue_resolution_rate": 0.9},
-        {"username": "testuser", "calls_handled_today": 3, "quality_score": 85, "issue_resolution_rate": 0.7},
-    ]
-
-
 @shared_task
 def update_agent_gamification_scores():
     logger.info("Iniciando tarea de actualización de gamificación de agentes...")
