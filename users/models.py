@@ -107,7 +107,6 @@ class User(AbstractUser):
         return False
 
     def add_points(self, points: int):
-        from django.db.models import F
 
         self.gamification_points = F('gamification_points') + points
         self.save(update_fields=['gamification_points'])
