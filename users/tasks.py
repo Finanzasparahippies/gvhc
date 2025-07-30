@@ -3,7 +3,7 @@ from celery import shared_task
 from django.db import transaction
 from django.conf import settings
 from users.models import User  # Importa tu modelo de usuario
-from .fetch_sharpen_data import fetch_agent_performance_data # Necesitarás crear esta función
+from websocket_app.fetch_script import fetch_agent_performance_data # Necesitarás crear esta función
 import time # Para simular retardo si es necesario
 
 logger = logging.getLogger(__name__)
