@@ -73,7 +73,7 @@ print(f"DEBUG is: {DEBUG}")
 print(f"SHARPEN_API_BASE_URL is: {SHARPEN_API_BASE_URL}")
 print(f"REDIS_URL is: {REDIS_URL}")
 
-ALLOWED_HOSTS_STR = os.getenv('ALLOWED_HOSTS', 'localhost,127.0.0.1,gvhc-backend.onrender.com,gvhc.netlify.app,gvhc-websocket.onrender.com')
+ALLOWED_HOSTS_STR = os.getenv('ALLOWED_HOSTS', 'localhost,127.0.0.1,gvhc-backend-fsqa.onrender.com,gvhc.netlify.app,gvhc-websocket-mawh.onrender.com')
 ALLOWED_HOSTS_ENV = ALLOWED_HOSTS_STR.split(',')
 
 ALLOWED_HOSTS = [host.strip() for host in ALLOWED_HOSTS_ENV if host.strip()] # Limpiar espacios y vacíos
@@ -328,10 +328,12 @@ CORS_ALLOWED_ORIGINS = [
     "http://localhost:8000",
     "https://api-current.iz1.sharpen.cx",
     "https://gvhc-backend.onrender.com",
+    "https://gvhc-backend-fsqa.onrender.com"
 ]
 CORS_ALLOWED_ORIGIN_REGEXES = [
     r"^https://.*\.github\.dev$",
     r"^https://gvhc-backend\.onrender\.com$", # Añade esto si no está
+    r"^https://gvhc-backend-fsqa\.onrender\.com$", # Añade esto si no está
     r"^https://gvhc\.netlify\.app$", # Añade esto para tu frontend Netlify
 ]
 
@@ -341,11 +343,13 @@ CSRF_TRUSTED_ORIGINS = [
     "http://localhost:5173",
     "http://localhost:5174",
     "https://gvhc.netlify.app", 
-    "https://gvhc-backend.onrender.com",
+    "https://gvhc-backend-fsqa.onrender.com",
     "wss://gvhc-backend.onrender.com",
+    "wss://gvhc-backend-fsqa.onrender.com",
     "https://api-current.iz1.sharpen.cx",
     "ws://localhost:8001",
     "https://gvhc-websocket.onrender.com"
+    "https://gvhc-websocket-mawh.onrender.com"
 ]
 
 CSRF_COOKIE_NAME = 'csrftoken'  # Asegúrate de que este valor sea el correcto
