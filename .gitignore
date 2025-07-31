@@ -1,28 +1,48 @@
-# Python files y cache
+# Python files and cache
 __pycache__/
 *.py[cod]
 *.sqlite3
 *.db
+*.db-journal  # For temporary SQLite files
 
-# Configuración de entorno
-env/
+# Virtual environment directories
+/env/
+/venv/
 
-# Archivos de log
+# Environment configuration files (critical!)
+.env
+.env.production
+# .env.example # Uncomment this line if you decide NOT to track .env.example
+
+# Log files
 *.log
+logs/ # If you have a dedicated logs directory
 
-# Archivos de migraciones de Django
+# Django migrations
 **/migrations/*.pyc
 **/migrations/__pycache__/
 
-# Archivos estáticos y media generados
+# Generated static and media files
 /staticfiles/
-/static
+/static/
 /media/
 
-# Archivos y configuraciones específicas del IDE
+# IDE specific files and configurations
 .vscode/
 .idea/
+.history/ # Some IDEs/extensions create this
 
-# Archivos de sistema
+# System files
 .DS_Store
 Thumbs.db
+
+# Celery specific runtime files
+celerybeat-schedule.* # Covers .bak, .dat, .dir
+celerybeat.pid
+celeryd.pid
+
+# Temporary/misc files that shouldn't be tracked
+git-filter-repo.txt
+# et --hard 754bc50 # If this was a file, add it
+# set # If this was a file, add it
+test_redis.py # If it's truly a temporary test script

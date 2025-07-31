@@ -129,12 +129,13 @@ INSTALLED_APPS = [
     "testing",
     "queues",
     "reports",
+    "foodstation",
+    "calling_monitor",
     "dashboards",
     "celery",
     "django_celery_beat",
     "websocket_app",
     "channels",
-    "foodstation",
     #third party
     "rest_framework",
     "corsheaders",
@@ -285,6 +286,11 @@ LOGGING = {
             'level': 'DEBUG', # Asegúrate de que los logs de tu consumer se vean
             'propagate': False,
         },
+        'calling_monitor': { # Nombre de tu aplicación
+            'handlers': ['console'],
+            'level': 'DEBUG', # Cambia a INFO o WARNING en producción
+            'propagate': True,
+        },
     }
 }
 # Internationalization
@@ -318,6 +324,7 @@ KEYWORDS = ["Golden Valley Health Center", "ER", "two months", "PCP", "primary c
 CORS_ALLOWED_ORIGINS = [
     "https://gvhc.netlify.app",  # URL del frontend
     "http://localhost:5173",  # Para pruebas locales
+    "http://localhost:5174",
     "http://localhost:8000",
     "https://api-current.iz1.sharpen.cx",
     "https://gvhc-backend.onrender.com",
@@ -332,6 +339,7 @@ CSRF_TRUSTED_ORIGINS = [
     "http://localhost:8000",
     "http://localhost:8001",
     "http://localhost:5173",
+    "http://localhost:5174",
     "https://gvhc.netlify.app", 
     "https://gvhc-backend.onrender.com",
     "wss://gvhc-backend.onrender.com",

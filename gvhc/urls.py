@@ -52,7 +52,7 @@ urlpatterns = [
     path("admin/", admin.site.urls),
     path('api/users/', include('users.urls')),
     path('api/', include('faqs.urls') ),
-    path('api/grammar/', include('calling_monitor.urls')),
+    path('api/monitoring/', include('calling_monitor.urls')),
     path('api/reports/', include('reports.urls')),
     path('api/websocket/', include('websocket_app.urls')), 
     path('api/dashboards/', include('dashboards.urls')),

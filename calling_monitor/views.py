@@ -1,39 +1,106 @@
-from django.shortcuts import render
+#calling_monitor/views.py
 from django.http import JsonResponse
 from django.views.decorators.csrf import csrf_exempt
+from .models import CallAnalysis
+from .utils.transcriber import transcribe_audio_filelike_no_disk, get_vosk_model_path # Import get_vosk_model_path too
+from .utils.analyzer import extract_information
 import json
-import openai
-import os
-from decouple import config
-import language_tool_python
-
-
-# Create your views here.
-# Configuración de la API Key
-openai.api_key = config('OPENAI_API_KEY')
+from io import BytesIO
+import requests 
+import tempfile
+import logging
+logger = logging.getLogger(__name__)
 
 @csrf_exempt
-def grammar_correction(request):
-    if request.method == "POST":
-        try:
-            data = json.loads(request.body)
-            user_text = data.get('text')
+def analyze_remote_audio(request):
+    """
+    Analiza directamente el audio remoto de Sharpen, sin necesidad de subirlo.
+    """
+    logger.debug("Received request for analyze_remote_audio")
+    if request.method != "POST":
+        return JsonResponse({"error": "Método no permitido"}, status=405)
 
-            if user_text:
-                response = openai.chat.completions.create(
-                    model="gpt-3.5-turbo",
-                    messages=[
-                        {"role": "user", "content": f"Correct the following sentence for grammar: {user_text}"}
-                    ]
-                )
-                corrected_text = response['choices'][0]['message']['content'].strip()
-                return JsonResponse({"corrected_text": corrected_text})
-            else:
-                return JsonResponse({"error": "No text provided"}, status=400)
+    try:
+        data = json.loads(request.body)
+        audio_url = data.get("audioUrl") # Ahora esperamos la URL directa
+        unique_id = data.get("uniqueID") # Mantén el uniqueID para asociar con la llamada
+        lang = data.get("lang", "es") 
+
+        logger.debug(f"Attempting to analyze audio from URL: {audio_url}, Unique ID: {unique_id}")
+
+        if not audio_url or not unique_id:
+            logger.error(f"Missing parameters: audioUrl={audio_url}, uniqueID={unique_id}")
+            return JsonResponse({"error": "Faltan parámetros (audioUrl o uniqueID)."}, status=400)
+
+        # Descarga el audio directamente desde la URL proporcionada
+        # Aumenta el timeout si los archivos de audio son grandes
+        response = requests.get(audio_url, timeout=60) 
+        response.raise_for_status() # Lanza una excepción para errores HTTP (4xx o 5xx)
+        logger.debug(f"Successfully downloaded audio from {audio_url}")
+
+        audio_data = BytesIO(response.content)
+
+        # Transcribe el audio desde el objeto BytesIO
+        transcript = transcribe_audio_filelike_no_disk(audio_data, lang=lang) 
+        logger.debug(f"Transcription successful: {transcript[:100]}...")
+
+        analysis = extract_information(transcript)
+        logger.debug(f"Analysis successful: {analysis}")
+
+        # Guarda el análisis en la base de datos
+        # Asegúrate de que tu modelo CallAnalysis tiene un campo 'unique_id'
+        instance = CallAnalysis.objects.create(
+            audio_file=None,  # El audio no se sube localmente, solo se procesa desde la URL
+            transcript=transcript,
+            motives=analysis["motivos"],
+            agent_actions=analysis["acciones_agente"],
+            unique_id=unique_id, # Guarda el uniqueID para referencia
+            language_used=lang # You might want to add this field to your CallAnalysis model
+        )
+        logger.info(f"CallAnalysis instance created with ID: {instance.id}")
+
+        return JsonResponse({
+            "id": instance.id,
+            "transcript": transcript,
+            "analysis": analysis,
+            "message": "Audio analizado exitosamente.",
+            "language_used": lang # Return which language model was used
+        })
+
+    except requests.exceptions.RequestException as e:
+        logger.error(f"Error downloading audio from URL {audio_url}: {str(e)}", exc_info=True)
+        return JsonResponse({"error": f"Error descargando audio desde la URL: {str(e)}"}, status=500)
+    except Exception as e:
+        logger.error(f"Error during transcription or analysis for {unique_id}: {str(e)}", exc_info=True)
+        return JsonResponse({"error": f"Error durante la transcripción o análisis: {str(e)}"}, status=500)
+
+# Create your views here.
+@csrf_exempt
+def process_call(request):
+    if request.method == "POST":
+        audio = request.FILES.get("audio")
+        if not audio:
+            return JsonResponse({"error": "Archivo de audio no enviado"}, status=400)
+
+        instance = CallAnalysis.objects.create(audio_file=audio)
+        try:
+            transcript = transcribe_audio(instance.audio_file.path)
+            analysis = extract_information(transcript)
+
+            instance.transcript = transcript
+            instance.motives = analysis["motivos"]
+            instance.agent_actions = analysis["acciones_agente"]
+            instance.save()
+
+            return JsonResponse({
+                "transcript": transcript,
+                "analysis": analysis
+            })
+
         except Exception as e:
-            print(f"Error en la solicitud de OpenAI: {e}")
-            return JsonResponse({"error": "Internal server error"}, status=500)
-    return JsonResponse({"error": "Invalid request method"}, status=405)
+            return JsonResponse({"error": str(e)}, status=500)
+
+    return JsonResponse({"error": "Método no permitido"}, status=405)
 
 @csrf_exempt
 def grammar_correction2(request):
