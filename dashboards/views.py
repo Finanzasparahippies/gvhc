@@ -56,8 +56,9 @@ def get_sharpen_audio_url(mixmon_file_name: str, recording_key: str) -> str | No
         result = response.json()
         
         if result.get('status') == 'successful' and result.get('url'):
-            logger.info(f"Nueva URL de Sharpen obtenida exitosamente: {result['url']}")
-            return result['url']
+            returned_sharpen_url = result['url'] # Captura la URL devuelta por Sharpen
+            logger.info(f"Sharpen API (createRecordingURL) devolvió la URL: {returned_sharpen_url}")
+            return returned_sharpen_url
         else:
             logger.error(f"La respuesta de Sharpen para nueva URL no fue exitosa: {result}")
             return None

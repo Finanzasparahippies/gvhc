@@ -10,6 +10,9 @@ import io
 from pydub import AudioSegment
 from pydub.utils import get_prober_name, get_encoder_name
 import shutil # Make sure this is at the top
+import mimetypes
+
+
 
 import logging
 logger = logging.getLogger(__name__)
@@ -18,11 +21,13 @@ BASE_DIR = os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__fil
 VOSK_MODEL_ES_PATH = os.path.join(BASE_DIR, "models", "vosk-model-small-es-0.42")
 VOSK_MODEL_EN_PATH = os.path.join(BASE_DIR, "models", "vosk-model-small-en-us-0.15")
 
-FFMPEG_BIN_DIR = r"C:\Users\Agent\Documents\Zoom\config\files\gvhc\ffmpeg"
-# FFMPEG_BIN_DIR = os.path.join(BASE_DIR, "ffmpeg", "bin")
-os.environ["PATH"] += os.pathsep + FFMPEG_BIN_DIR
+FFMPEG_PATH = r'C:\Users\Agent\Documents\Zoom\config\files\gvhc\ffmpeg\bin' # O C:\ffmpeg\bin, etc.
+AudioSegment.converter = os.path.join(FFMPEG_PATH, 'ffmpeg.exe') # Para Windows
 
-logger.debug(f"FFMPEG_BIN_DIR: {FFMPEG_BIN_DIR}")
+# FFMPEG_BIN_DIR = os.path.join(BASE_DIR, "ffmpeg", "bin")
+os.environ["PATH"] += os.pathsep + FFMPEG_PATH
+
+logger.debug(f"FFMPEG_BIN_DIR: {FFMPEG_PATH}")
 
 ffmpeg_path = shutil.which("ffmpeg")
 ffprobe_path = shutil.which("ffprobe")
@@ -39,8 +44,8 @@ else:
 # --- END NEW VERIFICATION STEP ---
 try:
     # Set the full path to the executables
-    get_prober_name._path = os.path.join(FFMPEG_BIN_DIR, "ffprobe.exe")
-    get_encoder_name._path = os.path.join(FFMPEG_BIN_DIR, "ffmpeg.exe")
+    get_prober_name._path = os.path.join(FFMPEG_PATH, "ffprobe.exe")
+    get_encoder_name._path = os.path.join(FFMPEG_PATH, "ffmpeg.exe")
     logger.debug(f"Pydub's internal ffmpeg path set to: {get_encoder_name._path}")
     logger.debug(f"Pydub's internal ffprobe path set to: {get_prober_name._path}")
 except AttributeError:
@@ -79,6 +84,10 @@ def transcribe_audio(file_path, model_path=VOSK_MODEL_ES_PATH):
 
 def transcribe_audio_filelike(file_like_obj, model_path=VOSK_MODEL_ES_PATH): # Default to Spanish
     logger.debug(f"Transcribing file-like object using temp file, model: {model_path}")
+    mime_type, _ = mimetypes.guess_type("archivo.wav")
+    file_like_obj.seek(0)
+    logger.debug(f"Detected MIME type: {mime_type}")
+
     with tempfile.NamedTemporaryFile(delete=True, suffix=".wav") as temp_wav:
         temp_wav.write(file_like_obj.read())
         temp_wav.flush()
@@ -88,6 +97,12 @@ def transcribe_audio_filelike_no_disk(file_like_obj, lang="es"):
     model_path = get_vosk_model_path(lang)
     logger.debug(f"Starting transcribe_audio_filelike_no_disk for model: {model_path} (Language: {lang})")
     
+    if hasattr(file_like_obj, 'seek'):
+        # Si es un objeto file-like, intenta volver al principio
+        file_like_obj.seek(0)
+        logger.debug(f"Audio file-like object size (approx): {len(file_like_obj.read())} bytes")
+        file_like_obj.seek(0) # Vuelve al principio para que pydub lo lea de nuevo
+
     try:
         if not ffmpeg_path: # This check relies on the global ffmpeg_path variable
             raise FileNotFoundError("FFmpeg executable not found. Cannot process audio.")

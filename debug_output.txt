@@ -1,0 +1,11 @@
+    <html>
+        <head>
+            <title>Fathom Voice Call Recording Playback</title>
+        </head>
+        <body>
+        <audio controls>
+            <source src="https://s3.amazonaws.com/iz-iz1-mixrec/https%3A//api-current.iz1.sharpen.cx/V2/voice/callRec/0fe28bb8e3413d6b35741c970c7d9bed?X-Amz-Content-Sha256=e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855&X-Amz-Algorithm=AWS4-HMAC-SHA256&X-Amz-Credential=AKIAXN6VFYKXRT5R32NU%2F20250731%2Fus-east-1%2Fs3%2Faws4_request&X-Amz-Date=20250731T201753Z&X-Amz-SignedHeaders=Host&X-Amz-Expires=1200&X-Amz-Signature=37f199da1a4df7dd97af473da29e32ba6fef63b945c3378e0a8d56ad1d456acf" type="audio/wav">
+                Your browser does not support the audio element.
+            </audio>
+        </body>
+    </html>

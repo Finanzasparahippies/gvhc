@@ -5,75 +5,95 @@ from .models import CallAnalysis
 from .utils.transcriber import transcribe_audio_filelike_no_disk, get_vosk_model_path # Import get_vosk_model_path too
 from .utils.analyzer import extract_information
 import json
+import os # Import the os module
 from io import BytesIO
 import requests 
 import tempfile
 import logging
+from rest_framework.permissions import AllowAny
+from rest_framework.response import Response
+from rest_framework import status
+from rest_framework.decorators import api_view, permission_classes
+from dashboards.views import get_sharpen_audio_url
+from .utils.audio_helper import download_audio_as_filelike
+from bs4 import BeautifulSoup
+import language_tool_python
+from urllib.parse import urljoin, unquote, urlparse, urlunparse # Asegúrate de importar unquote
+
 logger = logging.getLogger(__name__)
 
 @csrf_exempt
 def analyze_remote_audio(request):
-    """
-    Analiza directamente el audio remoto de Sharpen, sin necesidad de subirlo.
-    """
-    logger.debug("Received request for analyze_remote_audio")
     if request.method != "POST":
         return JsonResponse({"error": "Método no permitido"}, status=405)
 
     try:
         data = json.loads(request.body)
-        audio_url = data.get("audioUrl") # Ahora esperamos la URL directa
-        unique_id = data.get("uniqueID") # Mantén el uniqueID para asociar con la llamada
-        lang = data.get("lang", "es") 
+        audio_url = data.get("audioUrl")
+        unique_id = data.get("uniqueID")
+        lang = data.get("lang", "es")
 
-        logger.debug(f"Attempting to analyze audio from URL: {audio_url}, Unique ID: {unique_id}")
+        logger.debug(f"Intentando analizar audio desde URL: {audio_url}, Unique ID: {unique_id}")
 
         if not audio_url or not unique_id:
-            logger.error(f"Missing parameters: audioUrl={audio_url}, uniqueID={unique_id}")
+            logger.error(f"Faltan parámetros: audioUrl={audio_url}, uniqueID={unique_id}")
             return JsonResponse({"error": "Faltan parámetros (audioUrl o uniqueID)."}, status=400)
 
-        # Descarga el audio directamente desde la URL proporcionada
-        # Aumenta el timeout si los archivos de audio son grandes
-        response = requests.get(audio_url, timeout=60) 
-        response.raise_for_status() # Lanza una excepción para errores HTTP (4xx o 5xx)
-        logger.debug(f"Successfully downloaded audio from {audio_url}")
+        # Descarga inicial (puede devolver HTML)
+        response = requests.get(audio_url, timeout=60)
+        response.raise_for_status()
 
-        audio_data = BytesIO(response.content)
+        content_type = response.headers.get("Content-Type", "")
+        logger.debug(f"Content-Type de la respuesta inicial: {content_type}")
 
-        # Transcribe el audio desde el objeto BytesIO
-        transcript = transcribe_audio_filelike_no_disk(audio_data, lang=lang) 
-        logger.debug(f"Transcription successful: {transcript[:100]}...")
+        if "text/html" in content_type.lower():
+            # Parsear HTML para extraer URL real del audio
+            soup = BeautifulSoup(response.text, "html.parser")
+            source_tag = soup.find("source")
+            if source_tag and source_tag.has_attr("src"):
+                potential_audio_url = source_tag["src"]
+                # Usar urljoin para manejar URLs relativas o absolutas
+                audio_url_real = urljoin(audio_url, potential_audio_url) # Use the original audio_url as base
+                logger.debug(f"URL real extraída del HTML (o construida): {audio_url_real}")
 
+                # Descargar audio real
+                response_audio = requests.get(audio_url_real, timeout=60)
+                response_audio.raise_for_status()
+                audio_data = BytesIO(response_audio.content)
+            else:
+                logger.error("No se encontró la etiqueta <source> con atributo 'src' en el HTML")
+                return JsonResponse({"error": "No se pudo extraer URL de audio desde la página HTML"}, status=500)
+        else:
+            # Ya es archivo de audio directo
+            audio_data = BytesIO(response.content)
+
+        transcript = transcribe_audio_filelike_no_disk(audio_data, lang=lang)
         analysis = extract_information(transcript)
-        logger.debug(f"Analysis successful: {analysis}")
 
-        # Guarda el análisis en la base de datos
-        # Asegúrate de que tu modelo CallAnalysis tiene un campo 'unique_id'
         instance = CallAnalysis.objects.create(
-            audio_file=None,  # El audio no se sube localmente, solo se procesa desde la URL
+            audio_file=None,
             transcript=transcript,
             motives=analysis["motivos"],
             agent_actions=analysis["acciones_agente"],
-            unique_id=unique_id, # Guarda el uniqueID para referencia
-            language_used=lang # You might want to add this field to your CallAnalysis model
+            unique_id=unique_id,
+            language_used=lang
         )
-        logger.info(f"CallAnalysis instance created with ID: {instance.id}")
+        logger.info(f"Instancia CallAnalysis creada con ID: {instance.id}")
 
         return JsonResponse({
             "id": instance.id,
             "transcript": transcript,
             "analysis": analysis,
             "message": "Audio analizado exitosamente.",
-            "language_used": lang # Return which language model was used
+            "language_used": lang
         })
 
     except requests.exceptions.RequestException as e:
-        logger.error(f"Error downloading audio from URL {audio_url}: {str(e)}", exc_info=True)
+        logger.error(f"Error descargando audio desde URL {audio_url}: {str(e)}", exc_info=True)
         return JsonResponse({"error": f"Error descargando audio desde la URL: {str(e)}"}, status=500)
     except Exception as e:
-        logger.error(f"Error during transcription or analysis for {unique_id}: {str(e)}", exc_info=True)
+        logger.error(f"Error durante la transcripción o análisis para {unique_id}: {str(e)}", exc_info=True)
         return JsonResponse({"error": f"Error durante la transcripción o análisis: {str(e)}"}, status=500)
-
 # Create your views here.
 @csrf_exempt
 def process_call(request):
@@ -142,3 +162,120 @@ def grammar_correction2(request):
     return JsonResponse({"error": "Invalid request method"}, status=405)
 
 
+@api_view(['POST'])
+@permission_classes([AllowAny])  # 👈 Esto es lo que necesitas
+def analyze_sharpen_audio(request):
+    """
+    Endpoint que analiza audio de Sharpen directamente.
+    Espera `mixmonFileName`, `uniqueID` y opcionalmente `lang`.
+    """
+    mixmon_file_name = request.data.get("mixmonFileName")
+    unique_id = request.data.get("uniqueID")
+    lang = request.data.get("lang", "es")
+
+    if not mixmon_file_name or not unique_id:
+        return Response({"error": "mixmonFileName y uniqueID son requeridos"}, status=400)
+
+    # 1. Obtener la URL firmada de Sharpen
+    sharpen_proxy_url = get_sharpen_audio_url(mixmon_file_name, unique_id)
+    if not sharpen_proxy_url:
+        logger.error(f"No se pudo obtener la URL del proxy de Sharpen para {unique_id}. Sharpen API no devolvió URL.")
+        return Response({"error": "No se pudo obtener la URL de audio de Sharpen"}, status=500)
+    
+    logger.info(f"URL de proxy de Sharpen obtenida para {unique_id}: {sharpen_proxy_url}")
+    current_url_to_fetch = sharpen_proxy_url
+    audio_data = None
+    max_redirects_html = 3 # Limitar las redirecciones a través de HTML para evitar bucles infinitos
+
+    for i in range(max_redirects_html):
+        try:
+            logger.info(f"Intentando obtener contenido de: {current_url_to_fetch} (Intento {i+1})")
+            response = requests.get(current_url_to_fetch, timeout=60)
+            response.raise_for_status()
+            content_type = response.headers.get("Content-Type", "").lower()
+            logger.debug(f"Content-Type recibido de '{current_url_to_fetch}': '{content_type}'")
+
+            if "text/html" in content_type:
+                logger.info(f"URL '{current_url_to_fetch}' devolvió HTML. Buscando la URL de audio real con BeautifulSoup.")
+                html_content = response.text
+                logger.debug(f"Contenido HTML (primeros 500 chars): {html_content[:500]}")
+                soup = BeautifulSoup(html_content, "html.parser")
+
+                extracted_url = None
+                source_tag = soup.find("source")
+                audio_tag = soup.find("audio")
+                # Si no se encuentra <source>, intenta buscar el src directamente en <audio>
+                if source_tag and source_tag.has_attr("src"):
+                    extracted_url = source_tag["src"]
+                    logger.info(f"URL extraída de <source src>: {extracted_url}")
+                elif audio_tag and audio_tag.has_attr("src"):
+                    extracted_url = audio_tag["src"]
+                    logger.info(f"URL extraída de <audio src>: {extracted_url}")
+                else:
+                    logger.error(f"HTML recibido de '{current_url_to_fetch}', pero no se encontró la etiqueta <source> ni <audio> con 'src'.")
+                    return Response({"error": "No se pudo extraer la URL de audio desde la página HTML de Sharpen."}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+                # La 'potential_audio_url' ya es la URL final y completa de S3.
+                # No es necesario reconstruirla.
+                parsed_extracted_url = urlparse(extracted_url)
+                decoded_path = unquote(parsed_extracted_url.path)
+                logger.debug(f"Path decodificado de la URL extraída: {decoded_path}")
+
+                if "s3.amazonaws.com" in parsed_extracted_url.netloc and "/https://" in decoded_path:
+                    logger.warning("Detectado patrón de URL mal formada por Sharpen (URL de Sharpen incrustada en el path de S3).")
+                    parts_of_path_after_bucket = decoded_path.split('/https:/', 1) 
+                    if len(parts_of_path_after_bucket) > 1:
+                        corrected_host_and_path = parts_of_path_after_bucket[1].lstrip('/')
+                        if not corrected_host_and_path.startswith("https://") and not corrected_host_and_path.startswith("http://"):
+                                next_url_to_fetch  = "https://" + corrected_host_and_path
+                        else:
+                                next_url_to_fetch  = corrected_host_and_path
+                        logger.info(f"URL de audio corregida: {next_url_to_fetch}")
+                    else:
+                        # Si no se pudo corregir el patrón, usar la URL original (seguirá fallando)
+                        next_url_to_fetch = extracted_url # No se pudo corregir el patrón, usar la URL original (probablemente falle)
+                        logger.warning(f"No se pudo corregir la URL mal formada en el path. Usando la URL original extraída: {next_url_to_fetch}")
+                else:
+                    # Si la URL no tiene el patrón de Sharpen malformado, la usamos tal cual.
+                    next_url_to_fetch = extracted_url
+                    logger.info(f"URL de S3 directa para el siguiente intento (sin corrección de path): {next_url_to_fetch}")
+            
+                current_url_to_fetch = next_url_to_fetch
+
+            elif "application/xml" in content_type or "text/xml" in content_type:
+                # Esto suele ser un error de S3 (URL expirada)
+                error_content = response.text
+                logger.error(f"La URL '{current_url_to_fetch}' devolvió un error XML (probablemente la URL expiró o es inválida): {error_content[:500]}")
+                return Response({"error": "La URL del audio parece haber expirado o es inválida.", "details": error_content[:500]}, status=status.HTTP_400_BAD_REQUEST)
+            elif "audio" in content_type or "binary/octet-stream" in content_type or "application/x-download" in content_type:
+                logger.info(f"URL '{current_url_to_fetch}' devolvió directamente un archivo de audio. ¡Éxito!")
+                audio_data = BytesIO(response.content)
+                break # Salir del bucle, tenemos el audioo
+            else:
+                logger.warning(f"Content-Type inesperado para '{current_url_to_fetch}': '{content_type}'. Intentando procesar como audio de todas formas.")
+                audio_data = BytesIO(response.content)
+                break # Salir del bucle, asumiendo que es audio
+        except requests.exceptions.RequestException as e:
+            logger.error(f"Error de red/HTTP al descargar el audio para {unique_id} desde {current_url_to_fetch}: {e}", exc_info=True)
+            status_code = getattr(e.response, 'status_code', 502) if hasattr(e, 'response') else 502
+            return Response({"error": f"No se pudo descargar el audio desde Sharpen: {e}"}, status=status_code)
+        except Exception as e:
+            logger.error(f"Error inesperado durante el proceso de análisis para {unique_id} en la URL {current_url_to_fetch}: {e}", exc_info=True)
+            return Response({"error": f"Ocurrió un error al procesar la URL: {str(e)}"}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+    
+
+    if not audio_data or not audio_data.getvalue():
+        logger.error(f"No se pudo obtener el archivo de audio después de {max_redirects_html} intentos de extracción de HTML para {unique_id}.")
+        return Response({"error": "No se pudo obtener el archivo de audio para procesamiento después de múltiples redirecciones HTML."}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+
+    logger.info(f"Tamaño de audio_data antes de transcripción: {audio_data.tell()} bytes")
+    audio_data.seek(0) # Reiniciar la posición del buffer al principio
+    
+    logger.info(f"Iniciando transcripción para {unique_id}...")
+    transcription = transcribe_audio_filelike_no_disk(audio_data, lang)
+    logger.info(f"Transcripción completada para {unique_id}.")
+    
+    return Response({
+        "status": "success",
+        "transcription": transcription,
+        "uniqueID": unique_id
+    }, status=status.HTTP_200_OK)

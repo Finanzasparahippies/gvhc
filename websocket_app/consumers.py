@@ -20,19 +20,23 @@ class CallsConsumer(AsyncWebsocketConsumer):
         
         await self.accept()
 
-        print(f"Cliente conectado al grupo '{self.group_name}' con channel_name: {self.channel_name}")
+        logger.info(f"Cliente conectado al grupo '{self.group_name}' con channel_name: {self.channel_name}")
         
         # Enviar mensaje de confirmación de conexión
         await self.send(text_data=json.dumps({"message": "WebSocket conectado"}))
 
     async def disconnect(self, close_code):
         # Salir del grupo de canales al desconectar
+        logger.info(f"Cliente desconectado del grupo '{self.group_name}' con código: {close_code}.")
         await self.channel_layer.group_discard(
             self.group_name,
             self.channel_name
         )
-        logger.info(f"Cliente desconectado del grupo '{self.group_name}' con código: {close_code}.") # Log close_code
 
+    async def receive(self, text_data):
+        # No specific receive logic needed if it's just for broadcasting
+        pass
+    
     async def dataUpdate(self, event):
         """
         Este método es invocado por la tarea de Celery.
