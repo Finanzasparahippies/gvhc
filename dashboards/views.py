@@ -44,7 +44,7 @@ def get_sharpen_audio_url(mixmon_file_name: str, recording_key: str) -> str | No
         "cKey2": cKey2, 
         "uKey": uKey,
         "uniqueID": recording_key, 
-        "fileName": mixmon_file_name
+        "mixmonFileName": mixmon_file_name
     }
     
     api_url = f"{settings.SHARPEN_API_BASE_URL}/{endpoint}/"

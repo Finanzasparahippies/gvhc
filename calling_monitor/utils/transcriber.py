@@ -99,25 +99,17 @@ def transcribe_audio_filelike_no_disk(file_like_obj, lang="es"):
     
     if hasattr(file_like_obj, 'seek'):
         # Si es un objeto file-like, intenta volver al principio
-        file_like_obj.seek(0)
         logger.debug(f"Audio file-like object size (approx): {len(file_like_obj.read())} bytes")
         file_like_obj.seek(0) # Vuelve al principio para que pydub lo lea de nuevo
 
-    try:
         if not ffmpeg_path: # This check relies on the global ffmpeg_path variable
             raise FileNotFoundError("FFmpeg executable not found. Cannot process audio.")
+    try:
         model = Model(model_path)
         file_like_obj.seek(0)
 
         logger.debug("Attempting to load audio with pydub...")
-        try:
-
-
- 
-            audio_segment = AudioSegment.from_file(file_like_obj)
-        except Exception as pydub_err:
-            logger.error(f"Pydub failed to load audio. Make sure ffmpeg is correctly installed and accessible. Error: {pydub_err}", exc_info=True)
-            raise # Re-raise if pydub can't handle it at all.
+        audio_segment = AudioSegment.from_file(file_like_obj)
 
         if audio_segment.frame_rate != 16000:
             logger.debug(f"Resampling audio from {audio_segment.frame_rate}Hz to 16000Hz.")
@@ -128,38 +120,37 @@ def transcribe_audio_filelike_no_disk(file_like_obj, lang="es"):
             audio_segment = audio_segment.set_channels(1)
 
         wav_buffer = io.BytesIO()
-        audio_segment.export(wav_buffer, format="wav")
+        audio_segment.export(wav_buffer, format="wav", parameters=["-acodec", "pcm_s16le", "-ar", "16000", "-ac", "1"])
         wav_buffer.seek(0)
 
         logger.debug("Pydub successfully processed audio into WAV format in memory.")
 
-        data, samplerate = sf.read(wav_buffer)
-        logger.debug(f"Soundfile read: data shape={data.shape}, samplerate={samplerate}")
-
-        if data.dtype != 'int16':
-            data = (data * 32767).astype('int16')
-            logger.debug(f"Converted audio data to int16. New dtype: {data.dtype}")
-
+        samplerate = audio_segment.frame_rate # Should be 16000 now
         rec = KaldiRecognizer(model, samplerate)
-        logger.debug("KaldiRecognizer initialized.")
+        logger.debug(f"KaldiRecognizer initialized with samplerate: {samplerate}.")
 
-        audio_bytes_for_vosk = data.tobytes()
-        
-        chunk_size = 4000 
         results = []
-        
-        for i in range(0, len(audio_bytes_for_vosk), chunk_size * data.itemsize):
-            chunk = audio_bytes_for_vosk[i : i + chunk_size * data.itemsize]
-            if rec.AcceptWaveform(chunk):
-                res = json.loads(rec.Result())
-                results.append(res.get("text", ""))
-        
+        chunk_size = 4000 # Read in chunks (e.g., 4000 bytes)
+
+        while True:
+            data_chunk = wav_buffer.read(chunk_size)
+            if len(data_chunk) == 0:
+                break
+            if rec.AcceptWaveform(data_chunk):
+                part_result = json.loads(rec.Result())
+                if part_result.get('text'):
+                    results.append(part_result['text'])
+            # else:
+                # Optional: process partial results with rec.PartialResult()
+
+        # Get the final result for any remaining audio
         final_result = json.loads(rec.FinalResult())
-        results.append(final_result.get("text", ""))
-        
-        transcription = " ".join(results)
-        logger.debug(f"Full transcription result: {transcription}")
-        return transcription
+        if final_result.get('text'):
+            results.append(final_result['text'])
+
+        full_transcript = " ".join(results).strip()
+        logger.debug(f"Full transcription result: {full_transcript}")
+        return full_transcript
 
     except Exception as e:
         logger.error(f"Error inside transcribe_audio_filelike_no_disk: {str(e)}", exc_info=True)
