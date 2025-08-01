@@ -174,6 +174,7 @@ def analyze_sharpen_audio(request):
     lang = request.data.get("lang", "es")
 
     if not mixmon_file_name or not unique_id:
+        logger.error(f"Faltan parámetros en la solicitud. mixmonFileName: {mixmon_file_name}, uniqueID: {unique_id}") # <-- Mejora el log aquí
         return Response({"error": "mixmonFileName y uniqueID son requeridos"}, status=400)
 
     # 1. Obtener la URL firmada de Sharpen
