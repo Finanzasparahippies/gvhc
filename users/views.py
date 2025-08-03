@@ -1,5 +1,7 @@
 # users/views.py
 from rest_framework import generics, permissions
+from django.views.decorators.csrf import csrf_exempt
+from django.utils.decorators import method_decorator
 from rest_framework.response import Response
 from rest_framework.views import APIView
 from rest_framework_simplejwt.tokens import RefreshToken
@@ -16,7 +18,7 @@ from .serializers import MyTokenObtainPairSerializer
 
 logger = logging.getLogger(__name__)
 
-
+@method_decorator(csrf_exempt, name='dispatch')
 class LoginView(APIView):
     def post(self, request):
         username = request.data.get('username')
@@ -25,8 +27,9 @@ class LoginView(APIView):
         logger.info(username, password)
 
         user = authenticate(request, username=username, password=password)
-        # if not user:
-        #     return Response({"error": "Invalid credentials"}, status=401)
+        if not user:
+            logger.warning(f"Fallo de autenticación para: {username}")
+            return Response({"error": "Invalid credentials"}, status=401)
 
         refresh = RefreshToken.for_user(user)
         user_data = UserSerializer(user).data

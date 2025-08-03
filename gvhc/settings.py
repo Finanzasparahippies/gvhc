@@ -348,8 +348,8 @@ CSRF_TRUSTED_ORIGINS = [
     "wss://gvhc-backend-fsqa.onrender.com",
     "https://api-current.iz1.sharpen.cx",
     "ws://localhost:8001",
-    "https://gvhc-websocket.onrender.com"
-    "https://gvhc-websocket-mawh.onrender.com"
+    "https://gvhc-websocket.onrender.com",
+    "https://gvhc-websocket-mawh.onrender.com",
 ]
 
 CSRF_COOKIE_NAME = 'csrftoken'  # Asegúrate de que este valor sea el correcto
