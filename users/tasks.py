@@ -1,3 +1,4 @@
+# users/tasks.py
 import logging
 from celery import shared_task
 from django.db import transaction
