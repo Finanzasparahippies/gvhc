@@ -21,37 +21,42 @@ BASE_DIR = os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__fil
 VOSK_MODEL_ES_PATH = os.path.join(BASE_DIR, "models", "vosk-model-small-es-0.42")
 VOSK_MODEL_EN_PATH = os.path.join(BASE_DIR, "models", "vosk-model-small-en-us-0.15")
 
-FFMPEG_PATH = r'C:\Users\Agent\Documents\Zoom\config\files\gvhc\ffmpeg\bin' # O C:\ffmpeg\bin, etc.
-AudioSegment.converter = os.path.join(FFMPEG_PATH, 'ffmpeg.exe') # Para Windows
+# FFMPEG_PATH = r'C:\Users\Agent\Documents\Zoom\config\files\gvhc\ffmpeg\bin' # O C:\ffmpeg\bin, etc.
+# AudioSegment.converter = os.path.join(FFMPEG_PATH, 'ffmpeg.exe') # Para Windows
 
-# FFMPEG_BIN_DIR = os.path.join(BASE_DIR, "ffmpeg", "bin")
-os.environ["PATH"] += os.pathsep + FFMPEG_PATH
+# # FFMPEG_BIN_DIR = os.path.join(BASE_DIR, "ffmpeg", "bin")
+# os.environ["PATH"] += os.pathsep + FFMPEG_PATH
 
-logger.debug(f"FFMPEG_BIN_DIR: {FFMPEG_PATH}")
+# logger.debug(f"FFMPEG_BIN_DIR: {FFMPEG_PATH}")
 
 ffmpeg_path = shutil.which("ffmpeg")
 ffprobe_path = shutil.which("ffprobe")
 
 if ffmpeg_path:
     logger.debug(f"ffmpeg found at: {ffmpeg_path}")
+    AudioSegment.converter = ffmpeg_path
 else:
     logger.error(f"ffmpeg NOT found in PATH. Current PATH: {os.environ.get('PATH')}")
+    raise FileNotFoundError("ffmpeg executable not found in system PATH. Please install FFmpeg and add it to your system's PATH.")
 
 if ffprobe_path:
     logger.debug(f"ffprobe found at: {ffprobe_path}")
+    AudioSegment.probe = ffprobe_path # pydub uses .probe for ffprobe, not .prober_name
 else:
     logger.error(f"ffprobe NOT found in PATH. Current PATH: {os.environ.get('PATH')}")
+    raise FileNotFoundError("ffprobe executable not found in system PATH. Please install FFmpeg and add it to your system's PATH.")
+
 # --- END NEW VERIFICATION STEP ---
-try:
-    # Set the full path to the executables
-    get_prober_name._path = os.path.join(FFMPEG_PATH, "ffprobe.exe")
-    get_encoder_name._path = os.path.join(FFMPEG_PATH, "ffmpeg.exe")
-    logger.debug(f"Pydub's internal ffmpeg path set to: {get_encoder_name._path}")
-    logger.debug(f"Pydub's internal ffprobe path set to: {get_prober_name._path}")
-except AttributeError:
-    # Handle cases where _path might not be directly settable in some pydub versions
-    logger.warning("Could not set pydub's internal ffmpeg/ffprobe paths directly via _path attribute. Relying on PATH environment variable.")
-    pass # Continue, relying on the os.environ["PATH"] modificatio-
+# try:
+#     # Set the full path to the executables
+#     get_prober_name._path = os.path.join(FFMPEG_PATH, "ffprobe.exe")
+#     get_encoder_name._path = os.path.join(FFMPEG_PATH, "ffmpeg.exe")
+#     logger.debug(f"Pydub's internal ffmpeg path set to: {get_encoder_name._path}")
+#     logger.debug(f"Pydub's internal ffprobe path set to: {get_prober_name._path}")
+# except AttributeError:
+#     # Handle cases where _path might not be directly settable in some pydub versions
+#     logger.warning("Could not set pydub's internal ffmpeg/ffprobe paths directly via _path attribute. Relying on PATH environment variable.")
+#     pass # Continue, relying on the os.environ["PATH"] modificatio-
 
 
 def get_vosk_model_path(lang="es"):

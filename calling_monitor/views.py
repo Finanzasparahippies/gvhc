@@ -33,30 +33,25 @@ def analyze_remote_audio(request):
         unique_id = data.get("uniqueID")
         lang = data.get("lang", "es")
 
-        logger.debug(f"Intentando analizar audio desde URL: {audio_url}, Unique ID: {unique_id}")
+        logger.debug(f"Intentando analizar audio desde URL: {audio_url}, Unique ID: {unique_id}, Lang: {lang}")
 
         if not audio_url or not unique_id:
             logger.error(f"Faltan parámetros: audioUrl={audio_url}, uniqueID={unique_id}")
             return JsonResponse({"error": "Faltan parámetros (audioUrl o uniqueID)."}, status=400)
 
-        # Descarga inicial (puede devolver HTML)
+        # ... (lógica de descarga de audio, sin cambios)
         response = requests.get(audio_url, timeout=60)
         response.raise_for_status()
-
         content_type = response.headers.get("Content-Type", "")
         logger.debug(f"Content-Type de la respuesta inicial: {content_type}")
 
         if "text/html" in content_type.lower():
-            # Parsear HTML para extraer URL real del audio
             soup = BeautifulSoup(response.text, "html.parser")
             source_tag = soup.find("source")
             if source_tag and source_tag.has_attr("src"):
                 potential_audio_url = source_tag["src"]
-                # Usar urljoin para manejar URLs relativas o absolutas
-                audio_url_real = urljoin(audio_url, potential_audio_url) # Use the original audio_url as base
+                audio_url_real = urljoin(audio_url, potential_audio_url)
                 logger.debug(f"URL real extraída del HTML (o construida): {audio_url_real}")
-
-                # Descargar audio real
                 response_audio = requests.get(audio_url_real, timeout=60)
                 response_audio.raise_for_status()
                 audio_data = BytesIO(response_audio.content)
@@ -64,17 +59,23 @@ def analyze_remote_audio(request):
                 logger.error("No se encontró la etiqueta <source> con atributo 'src' en el HTML")
                 return JsonResponse({"error": "No se pudo extraer URL de audio desde la página HTML"}, status=500)
         else:
-            # Ya es archivo de audio directo
             audio_data = BytesIO(response.content)
 
         transcript = transcribe_audio_filelike_no_disk(audio_data, lang=lang)
-        analysis = extract_information(transcript)
+        # LLAMADA ACTUALIZADA a extract_information
+        analysis = extract_information(transcript, lang=lang)
 
         instance = CallAnalysis.objects.create(
             audio_file=None,
             transcript=transcript,
-            motives=analysis["motivos"],
-            agent_actions=analysis["acciones_agente"],
+            # Ahora guardamos los nuevos campos
+            high_risk_warnings=json.dumps(analysis["high_risk_warnings"]), # Guarda como JSON string
+            call_motives=json.dumps(analysis["call_motives"]), # Guarda como JSON string
+            # Los siguientes campos podrían ser redundantes si "motivos" y "acciones_agente"
+            # son ahora cubiertos por high_risk_warnings y call_motives.
+            # Decide si aún los necesitas o si el nuevo análisis los reemplaza.
+            motives=json.dumps(analysis.get("motivos", [])), # Usar .get para evitar KeyError si lo eliminas
+            agent_actions=json.dumps(analysis.get("acciones_agente", [])),
             unique_id=unique_id,
             language_used=lang
         )
@@ -83,7 +84,12 @@ def analyze_remote_audio(request):
         return JsonResponse({
             "id": instance.id,
             "transcript": transcript,
-            "analysis": analysis,
+            "analysis": {
+                "high_risk_warnings": analysis["high_risk_warnings"],
+                "call_motives": analysis["call_motives"],
+                "motivos": analysis.get("motivos", []),
+                "agent_actions": analysis.get("acciones_agente", []),
+            },
             "message": "Audio analizado exitosamente.",
             "language_used": lang
         })
@@ -94,6 +100,7 @@ def analyze_remote_audio(request):
     except Exception as e:
         logger.error(f"Error durante la transcripción o análisis para {unique_id}: {str(e)}", exc_info=True)
         return JsonResponse({"error": f"Error durante la transcripción o análisis: {str(e)}"}, status=500)
+
 # Create your views here.
 @csrf_exempt
 def process_call(request):
@@ -104,7 +111,7 @@ def process_call(request):
 
         instance = CallAnalysis.objects.create(audio_file=audio)
         try:
-            transcript = transcribe_audio(instance.audio_file.path)
+            transcript = transcribe_audio_filelike_no_disk(instance.audio_file.path)
             analysis = extract_information(transcript)
 
             instance.transcript = transcript
@@ -274,9 +281,35 @@ def analyze_sharpen_audio(request):
     logger.info(f"Iniciando transcripción para {unique_id}...")
     transcription = transcribe_audio_filelike_no_disk(audio_data, lang)
     logger.info(f"Transcripción completada para {unique_id}.")
-    
+
+    analysis = extract_information(transcription, lang=lang)
+    logger.info(f"Análisis Spacy completado para {unique_id}.")
+
+    try:
+            instance = CallAnalysis.objects.create(
+                audio_file=None, # O una referencia al audio de Sharpen si es aplicable
+                transcript=transcription,
+                high_risk_warnings=json.dumps(analysis["high_risk_warnings"]),
+                call_motives=json.dumps(analysis["call_motives"]),
+                motives=json.dumps(analysis.get("motivos", [])), # Campo antiguo, decide si lo mantienes
+                agent_actions=json.dumps(analysis.get("acciones_agente", [])), # Campo antiguo, decide si lo mantienes
+                unique_id=unique_id,
+                language_used=lang
+            )
+            logger.info(f"Instancia CallAnalysis creada para audio de Sharpen con ID: {instance.id}")
+    except Exception as e:
+        logger.error(f"Error al guardar CallAnalysis para audio de Sharpen {unique_id}: {e}", exc_info=True)
+        # Decide cómo manejar este error: ¿devolver un 500 o continuar sin guardar?
+        # Por ahora, simplemente logueamos y continuamos para devolver la respuesta.
+
     return Response({
         "status": "success",
         "transcription": transcription,
-        "uniqueID": unique_id
+        "uniqueID": unique_id,
+        "analysis": {
+                    "high_risk_warnings": analysis["high_risk_warnings"],
+                    "call_motives": analysis["call_motives"],
+                    "motivos": analysis.get("motivos", []),
+                    "agent_actions": analysis.get("acciones_agente", []),
+        },    
     }, status=status.HTTP_200_OK)
