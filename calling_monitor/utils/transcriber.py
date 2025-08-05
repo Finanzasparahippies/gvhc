@@ -1,4 +1,5 @@
 # calling_monitor/utils/transcriber.py
+import shutil # Make sure this is at the top
 import wave
 import json
 from vosk import Model, KaldiRecognizer
@@ -9,9 +10,8 @@ import os # Import the os module
 import io
 from pydub import AudioSegment
 from pydub.utils import get_prober_name, get_encoder_name
-import shutil # Make sure this is at the top
 import mimetypes
-
+import spacy
 
 
 import logging
@@ -21,30 +21,32 @@ BASE_DIR = os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__fil
 VOSK_MODEL_ES_PATH = os.path.join(BASE_DIR, "models", "vosk-model-small-es-0.42")
 VOSK_MODEL_EN_PATH = os.path.join(BASE_DIR, "models", "vosk-model-small-en-us-0.15")
 
-# FFMPEG_PATH = r'C:\Users\Agent\Documents\Zoom\config\files\gvhc\ffmpeg\bin' # O C:\ffmpeg\bin, etc.
+nlp = spacy.load("en_core_web_md")
+
+FFMPEG_PATH = r'D:\GVHC\ffmpeg-7.1.1-essentials_build\bin' # O C:\ffmpeg\bin, etc.
 # AudioSegment.converter = os.path.join(FFMPEG_PATH, 'ffmpeg.exe') # Para Windows
 
 # # FFMPEG_BIN_DIR = os.path.join(BASE_DIR, "ffmpeg", "bin")
-# os.environ["PATH"] += os.pathsep + FFMPEG_PATH
+os.environ["PATH"] += os.pathsep + FFMPEG_PATH  # Por si otras libs también lo usan
 
 # logger.debug(f"FFMPEG_BIN_DIR: {FFMPEG_PATH}")
 
-ffmpeg_path = shutil.which("ffmpeg")
-ffprobe_path = shutil.which("ffprobe")
+ffmpeg_path = os.path.join(FFMPEG_PATH, "ffmpeg.exe")
+ffprobe_path = os.path.join(FFMPEG_PATH, "ffprobe.exe")
 
-if ffmpeg_path:
+if os.path.isfile(ffmpeg_path):
     logger.debug(f"ffmpeg found at: {ffmpeg_path}")
     AudioSegment.converter = ffmpeg_path
 else:
-    logger.error(f"ffmpeg NOT found in PATH. Current PATH: {os.environ.get('PATH')}")
-    raise FileNotFoundError("ffmpeg executable not found in system PATH. Please install FFmpeg and add it to your system's PATH.")
+    logger.error(f"ffmpeg NOT found at specified path: {ffmpeg_path}")
+    raise FileNotFoundError(f"❌ ffmpeg.exe not found at: {ffmpeg_path}")
 
-if ffprobe_path:
+if os.path.isfile(ffprobe_path):
     logger.debug(f"ffprobe found at: {ffprobe_path}")
-    AudioSegment.probe = ffprobe_path # pydub uses .probe for ffprobe, not .prober_name
+    AudioSegment.probe = ffprobe_path
 else:
     logger.error(f"ffprobe NOT found in PATH. Current PATH: {os.environ.get('PATH')}")
-    raise FileNotFoundError("ffprobe executable not found in system PATH. Please install FFmpeg and add it to your system's PATH.")
+    raise FileNotFoundError(f"❌ ffprobe.exe not found at: {ffprobe_path}")
 
 # --- END NEW VERIFICATION STEP ---
 # try:
@@ -57,6 +59,30 @@ else:
 #     # Handle cases where _path might not be directly settable in some pydub versions
 #     logger.warning("Could not set pydub's internal ffmpeg/ffprobe paths directly via _path attribute. Relying on PATH environment variable.")
 #     pass # Continue, relying on the os.environ["PATH"] modificatio-
+
+def analyze_transcript(text):
+    doc = nlp(text)
+    logger.debug("Tokens y POS:")
+    for token in doc:
+        logger.debug(f"{token.text} ({token.pos_})")
+    
+    logger.debug("Entidades encontradas:")
+    for ent in doc.ents:
+        logger.debug(f"{ent.text} - {ent.label_}")
+    
+    return doc
+
+def transcribe_and_print_entities(file_like_obj, lang="en"):
+    transcript, doc = transcribe_audio_filelike_no_disk(file_like_obj, lang=lang)
+    print("Texto transcrito:", transcript)
+    print("Entidades reconocidas:")
+    for ent in doc.ents:
+        print(f"  {ent.text} ({ent.label_})")
+        
+if __name__ == "__main__":
+    # Para pruebas locales, cambiar por ruta válida
+    with open("ruta/a/audio.wav", "rb") as f:
+        transcribe_and_print_entities(f, lang="en")
 
 
 def get_vosk_model_path(lang="es"):
@@ -155,7 +181,8 @@ def transcribe_audio_filelike_no_disk(file_like_obj, lang="es"):
 
         full_transcript = " ".join(results).strip()
         logger.debug(f"Full transcription result: {full_transcript}")
-        return full_transcript
+        doc = analyze_transcript(full_transcript)
+        return full_transcript, doc
 
     except Exception as e:
         logger.error(f"Error inside transcribe_audio_filelike_no_disk: {str(e)}", exc_info=True)
