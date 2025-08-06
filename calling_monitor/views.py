@@ -62,6 +62,8 @@ def analyze_remote_audio(request):
             audio_data = BytesIO(response.content)
 
         transcript = transcribe_audio_filelike_no_disk(audio_data, lang=lang)
+        logger.debug(f"Tipo de transcripción: {type(transcription)}, Valor: {transcription}") # Añade esta línea
+        logger.info(f"Transcripción completada para {unique_id}.")
         # LLAMADA ACTUALIZADA a extract_information
         analysis = extract_information(transcript, lang=lang)
 
@@ -282,7 +284,16 @@ def analyze_sharpen_audio(request):
     transcription = transcribe_audio_filelike_no_disk(audio_data, lang)
     logger.info(f"Transcripción completada para {unique_id}.")
 
-    analysis = extract_information(transcription, lang=lang)
+    if isinstance(transcription_result, tuple):
+        transcription_text = transcription_result[0]
+        # Si tienes varios resultados en la tupla, puedes unirlos
+        # transcription_text = " ".join(transcription_result)
+    else:
+        transcription_text = transcription_result
+        
+    logger.debug(f"Texto de transcripción para análisis: {transcription_text}")
+    
+    analysis = extract_information(transcription_text, lang=lang)
     logger.info(f"Análisis Spacy completado para {unique_id}.")
 
     try:
@@ -294,7 +305,8 @@ def analyze_sharpen_audio(request):
                 motives=json.dumps(analysis.get("motivos", [])), # Campo antiguo, decide si lo mantienes
                 agent_actions=json.dumps(analysis.get("acciones_agente", [])), # Campo antiguo, decide si lo mantienes
                 unique_id=unique_id,
-                language_used=lang
+                language_used=lang,
+                transcript=transcription_text, # Usa la variable corregida
             )
             logger.info(f"Instancia CallAnalysis creada para audio de Sharpen con ID: {instance.id}")
     except Exception as e:
@@ -304,7 +316,7 @@ def analyze_sharpen_audio(request):
 
     return Response({
         "status": "success",
-        "transcription": transcription,
+        "transcription": transcription_text, # Usa la variable corregida
         "uniqueID": unique_id,
         "analysis": {
                     "high_risk_warnings": analysis["high_risk_warnings"],
