@@ -299,14 +299,13 @@ def analyze_sharpen_audio(request):
     try:
             instance = CallAnalysis.objects.create(
                 audio_file=None, # O una referencia al audio de Sharpen si es aplicable
-                transcript=transcription,
+                transcript=transcription_text, # Usa la variable corregida
                 high_risk_warnings=json.dumps(analysis["high_risk_warnings"]),
                 call_motives=json.dumps(analysis["call_motives"]),
                 motives=json.dumps(analysis.get("motivos", [])), # Campo antiguo, decide si lo mantienes
                 agent_actions=json.dumps(analysis.get("acciones_agente", [])), # Campo antiguo, decide si lo mantienes
                 unique_id=unique_id,
                 language_used=lang,
-                transcript=transcription_text, # Usa la variable corregida
             )
             logger.info(f"Instancia CallAnalysis creada para audio de Sharpen con ID: {instance.id}")
     except Exception as e:
