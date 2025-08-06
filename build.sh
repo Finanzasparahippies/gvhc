@@ -26,8 +26,10 @@ export PATH="$INSTALL_DIR:$PATH"
 echo "PATH del entorno de construcción actualizado: $PATH"
 
 # Continuamos con el resto de la construcción
+pip cache purge
+python -m pip install --upgrade pip
 pip install -r requirements.txt
-python -m spacy download en_core_web_md
-python -m spacy download es_core_news_md
+python -m spacy download en_core_web_sm
+python -m spacy download es_core_news_sm
 python manage.py collectstatic --no-input
 python manage.py migrate
