@@ -152,7 +152,6 @@ def update_agent_gamification_scores():
 
 @shared_task
 def broadcast_calls_update():
-    global _last_data_checksums # Importante: indica que vas a modificar esta variable global
     try:
         channel_layer = get_channel_layer()
         if not channel_layer:
@@ -161,42 +160,25 @@ def broadcast_calls_update():
         
         payload_on_hold = async_to_sync(fetch_calls_on_hold_data)()
         calls_on_hold_data = payload_on_hold.get('getCallsOnHoldData', []) if isinstance(payload_on_hold, dict) else []
-        current_calls_on_hold_checksum = get_checksum(calls_on_hold_data)
 
         payload_live_queue = async_to_sync(fetch_live_queue_status_data)()
         live_queue_status_data = payload_live_queue.get('liveQueueStatus', []) if isinstance(payload_live_queue, dict) else []
-        current_live_queue_status_checksum = get_checksum(live_queue_status_data)
 
         full_frontend_payload = {
             "getCallsOnHoldData": calls_on_hold_data,
             "getLiveQueueStatusData": live_queue_status_data
         }
-        data_changed = False
-
-        if current_calls_on_hold_checksum != _last_data_checksums['getCallsOnHoldData']:
-            data_changed = True
-            _last_data_checksums['getCallsOnHoldData'] = current_calls_on_hold_checksum
-            logger.info("Checksum para 'getCallsOnHoldData' ha cambiado.")
-
-        if current_live_queue_status_checksum != _last_data_checksums['liveQueueStatus']:
-            data_changed = True
-            _last_data_checksums['liveQueueStatus'] = current_live_queue_status_checksum
-            logger.info("Checksum para 'liveQueueStatus' ha cambiado.")
-
-        if data_changed:
-            async_to_sync(channel_layer.group_send)(
-                "calls",
-                {
-                    "type": "dataUpdate",
-                    "payload": full_frontend_payload
-                }
-            )
-            logger.info("[Celery] Datos cambiaron, emitido a clientes WebSocket.")
-        else:
-            logger.info("[Celery] Sin cambios en los datos, no se emitió a clientes WebSocket.")
+        async_to_sync(channel_layer.group_send)(
+            "calls",
+            {
+                "type": "dataUpdate",
+                "payload": full_frontend_payload
+            }
+        )
+        logger.info("[Celery] Emitido a clientes WebSocket (sin control de cambios).")
 
     except Exception as e:
-        logger.exception(f"Error en Celery broadcast_calls_update: {e}") # Usar logger.exception para incluir traceback
+        logger.exception(f"Error en Celery broadcast_calls_update: {e}")
 
 
 
