@@ -9,7 +9,7 @@ import numpy as np # Needed for array manipulation if converting audio
 import os # Import the os module
 import io
 from pydub import AudioSegment
-from pydub.utils import get_prober_name, get_encoder_name
+from pydub.utils import get_prober_name, get_encoder_name, which
 import mimetypes
 import spacy
 
@@ -52,7 +52,7 @@ if not which("ffmpeg"):
     logger.error("❌ FFmpeg no se encontró en el PATH del sistema. Es necesario para procesar audio.")
     # Puedes lanzar una excepción o simplemente registrar el error
     # raise FileNotFoundError("FFmpeg no está instalado o no se encuentra en el PATH.")
-    
+
 if not which("ffprobe"):
     logger.error("❌ FFprobe no se encontró en el PATH del sistema.")
     # raise FileNotFoundError("FFprobe no está instalado o no se encuentra en el PATH.")
