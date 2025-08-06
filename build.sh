@@ -8,7 +8,7 @@ pip install -r requirements.txt
 
 # Descargar el modelo de spaCy necesario
 python -m spacy download en_core_web_md
-python -m spacy download es_core_web_md
+python -m spacy download es_core_news_md
 
 # Ejecutar migraciones y otros comandos de despliegue
 python manage.py collectstatic --no-input
