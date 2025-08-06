@@ -2,8 +2,8 @@
 # Exit script if any command fails
 set -o errexit
 
-sudo apt-get update
-sudo apt-get install -y ffmpeg
+apt-get update
+apt-get install -y ffmpeg
 
 python -m pip install --upgrade pip
 # Instalar dependencias de Python
