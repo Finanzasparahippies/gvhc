@@ -12,13 +12,13 @@ class CallsConsumer(AsyncWebsocketConsumer):
     async def connect(self):
         self.group_name = "calls"  # Nombre del grupo para broadcast
 
+        await self.accept()
         # Unirse al grupo de canales
         await self.channel_layer.group_add(
             self.group_name,
             self.channel_name
         )
         
-        await self.accept()
 
         logger.info(f"Cliente conectado al grupo '{self.group_name}' con channel_name: {self.channel_name}")
         
