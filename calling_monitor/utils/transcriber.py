@@ -21,7 +21,7 @@ BASE_DIR = os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__fil
 VOSK_MODEL_ES_PATH = os.path.join(BASE_DIR, "models", "vosk-model-small-es-0.42")
 VOSK_MODEL_EN_PATH = os.path.join(BASE_DIR, "models", "vosk-model-small-en-us-0.15")
 
-nlp = spacy.load("en_core_web_md")
+nlp = spacy.load("en_core_web_sm")
 
 # FFMPEG_PATH = r'D:\GVHC\ffmpeg-7.1.1-essentials_build\bin' # O C:\ffmpeg\bin, etc.
 # AudioSegment.converter = os.path.join(FFMPEG_PATH, 'ffmpeg.exe') # Para Windows
