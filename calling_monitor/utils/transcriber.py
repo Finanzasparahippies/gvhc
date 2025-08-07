@@ -135,15 +135,6 @@ def transcribe_audio_filelike(file_like_obj, model_path=VOSK_MODEL_ES_PATH): # D
 
 def transcribe_audio_filelike_no_disk(file_like_obj, lang="es"):
     model_path = get_vosk_model_path(lang)
-    logger.debug(f"Starting transcribe_audio_filelike_no_disk for model: {model_path} (Language: {lang})")
-    
-    if hasattr(file_like_obj, 'seek'):
-        # Si es un objeto file-like, intenta volver al principio
-        logger.debug(f"Audio file-like object size (approx): {len(file_like_obj.read())} bytes")
-        file_like_obj.seek(0) # Vuelve al principio para que pydub lo lea de nuevo
-
-        if not ffmpeg_path: # This check relies on the global ffmpeg_path variable
-            raise FileNotFoundError("FFmpeg executable not found. Cannot process audio.")
     try:
         model = Model(model_path)
         file_like_obj.seek(0)
@@ -190,8 +181,8 @@ def transcribe_audio_filelike_no_disk(file_like_obj, lang="es"):
 
         full_transcript = " ".join(results).strip()
         logger.debug(f"Full transcription result: {full_transcript}")
-        doc = analyze_transcript(full_transcript)
-        return full_transcript, doc
+        # doc = analyze_transcript(full_transcript)
+        return full_transcript 
 
     except Exception as e:
         logger.error(f"Error inside transcribe_audio_filelike_no_disk: {str(e)}", exc_info=True)

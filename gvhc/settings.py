@@ -329,10 +329,14 @@ CORS_ALLOWED_ORIGINS = [
     "https://api-current.iz1.sharpen.cx",
     "https://gvhc-backend.onrender.com",
     "https://gvhc-backend-fsqa.onrender.com"
+    "https://gvhc-worker.onrender.com"
+    "https://gvhc-beat.onrender.com"
 ]
 CORS_ALLOWED_ORIGIN_REGEXES = [
     r"^https://.*\.github\.dev$",
     r"^https://gvhc-backend\.onrender\.com$", # Añade esto si no está
+    r"^https://gvhc-worker\.onrender\.com$", # Añade esto si no está
+    r"^https://gvhc-beat\.onrender\.com$", # Añade esto si no está
     r"^https://gvhc-backend-fsqa\.onrender\.com$", # Añade esto si no está
     r"^https://gvhc\.netlify\.app$", # Añade esto para tu frontend Netlify
 ]

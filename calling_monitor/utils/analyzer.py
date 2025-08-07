@@ -13,9 +13,9 @@ def get_spacy_model(lang: str):
     Carga y cachea el modelo Spacy adecuado según el idioma.
     """
     if lang == "es":
-        model_name = "es_core_news_md"
+        model_name = "es_core_news_sm"
     elif lang == "en":
-        model_name = "en_core_web_md"
+        model_name = "en_core_web_sm"
     else:
         logger.error(f"Idioma no soportado para modelo Spacy: {lang}")
         raise ValueError(f"Idioma no soportado para modelo Spacy: {lang}. Elige 'es' o 'en'.")
