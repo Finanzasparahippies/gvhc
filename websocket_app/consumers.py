@@ -2,6 +2,7 @@
 import json
 from channels.generic.websocket import AsyncWebsocketConsumer
 import logging
+from .fetch_script import fetch_calls_on_hold_data, fetch_live_queue_status_data
 
 logger = logging.getLogger(__name__)
 
@@ -24,10 +25,7 @@ class CallsConsumer(AsyncWebsocketConsumer):
         
         # Enviar mensaje de confirmación de conexión
         await self.send(text_data=json.dumps({"message": "WebSocket conectado"}))
-        try:
-            # Importa las funciones de fetch que usas en Celery
-            from .fetch_script import fetch_calls_on_hold_data, fetch_live_queue_status_data
-            
+        try:            
             calls_on_hold_data = await fetch_calls_on_hold_data()
             live_queue_status_data = await fetch_live_queue_status_data()
 

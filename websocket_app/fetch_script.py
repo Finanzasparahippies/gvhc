@@ -91,24 +91,14 @@ async def fetch_agent_performance_data():
     endpoint = "V2/query/" # Asumiendo que usarás V2/query/ con SQL para esto
     today_utc = timezone.now().astimezone(timezone.utc).strftime('%Y-%m-%d')
 
-    sql_query = f"""
-        SELECT
-            T1.`username` AS "username",
-            COUNT(T2.`queueCallManagerID`) AS "calls_handled_today",
-            AVG(T2.`qualityScore`) AS "quality_score", -- **Confirmar si 'qualityScore' existe en queueCDR**
-            AVG(T2.`issueResolutionRate`) AS "issue_resolution_rate" -- **Confirmar si 'issueResolutionRate' existe en queueCDR**
-        FROM
-            `fathomvoice`.`fathomQueues`.`queueAgents` AS T1
-        LEFT JOIN
-            `fathomvoice`.`fathomQueues`.`queueCDR` AS T2
-            ON T1.`username` = T2.`agentName` -- Asumiendo que agentName en CDR es el username
-            AND DATE(T2.`answerTime`) = '{today_utc}' -- Filtrar por llamadas de hoy
-        WHERE
-            T1.`status` != 'offline' -- Considerar solo agentes activos o no offline
-        GROUP BY
-            T1.`username`
-        ORDER BY
-            T1.`username`
+    sql_query = """
+        SELECT 
+            `queue`.`queueName` AS "Queue Name", 
+            COUNT(`commType`) AS "Call Count"
+        FROM 
+            `fathomvoice`.`fathomQueues`.`queueCallManager` 
+        GROUP BY 
+            `Queue Name`
     """
     
     payload = {

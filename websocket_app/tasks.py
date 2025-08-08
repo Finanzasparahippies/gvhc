@@ -60,94 +60,67 @@ def update_agent_gamification_scores():
     logger.info("Iniciando tarea de actualización de gamificación de agentes...")
     try:
         sharpen_agent_data = async_to_sync(fetch_agent_performance_data)()
-
-        for agent_data in sharpen_agent_data:
-            sharpen_username = agent_data.get('username') # Clave 'username' del resultado de Sharpen
             
             if not sharpen_agent_data:
                 logger.warning("No se recibieron datos de agentes de Sharpen. Saltando actualización de gamificación.")
                 return
-            if not sharpen_username:
-                logger.warning(f"Dato de agente de Sharpen sin 'username'. Saltando: {agent_data}")
-                continue
+
+            for agent_data in sharpen_agent_data:
+                sharpen_username = agent_data.get('username')
+                if not sharpen_username:
+                    logger.warning(f"Dato de agente de Sharpen sin 'username'. Saltando: {agent_data}")
+                    continue
 
             try:
-                # Usar select_for_update() para evitar condiciones de carrera al actualizar puntos
-                user, created = User.objects.get_or_create(
-                    sharpen_username=sharpen_username,
-                    defaults={
-                        'username': sharpen_username,
-                        'email': f'{sharpen_username.replace(".", "")}@example.com', # Genera un email válido
-                        'first_name': sharpen_username.split('.')[0].capitalize() if '.' in sharpen_username else '',
-                        'last_name': sharpen_username.split('.')[1].capitalize() if '.' in sharpen_username else '',
-                        'role': 'agent',
-                        # Estos campos se inicializarán a 0 por defecto, pero se sobrescribirán en la primera ronda
-                        # 'last_calls_handled': 0, 
-                        # 'last_quality_score': 0.0,
-                        # 'last_resolution_rate': 0.0,
-                    }
-                )
+                with transaction.atomic(): 
+                    user, created = User.objects.get_or_create(
+                        sharpen_username=sharpen_username,
+                        defaults={
+                            'username': sharpen_username,
+                            'email': f'{sharpen_username.replace(".", "")}@example.com',
+                            'first_name': sharpen_username.split('.')[0].capitalize() if '.' in sharpen_username else '',
+                            'last_name': sharpen_username.split('.')[1].capitalize() if '.' in sharpen_username else '',
+                            'role': 'agent',
+                        }
+                    )
 
-                with transaction.atomic():  
-                    user.refresh_from_db() 
+                    user = User.objects.select_for_update().get(pk=user.pk)
+
                     points_for_this_agent_round = 0
+                    
                     current_calls_handled = agent_data.get('calls_handled_today', 0)
                     current_quality_score = agent_data.get('quality_score', 0.0)
                     current_resolution_rate = agent_data.get('issue_resolution_rate', 0.0)
 
                     # --- Lógica de Puntos Incremental ---
-                    if created or not user.first_processed_gamification_data:
-                        points_for_this_agent_round += GAMIFICATION_RULES['first_time_processing_bonus']
-                        user.first_processed_gamification_data = True
-                        logger.info(f"Agente {sharpen_username}: +{GAMIFICATION_RULES['first_time_processing_bonus']} por bono de primera vez/nuevo agente.")
+                    if created:
+                        points_for_this_agent_round += GAMIFICATION_RULES['new_agent_bonus']
+                        logger.info(f"Agente {sharpen_username}: +{GAMIFICATION_RULES['new_agent_bonus']} por bono de nuevo agente.")
 
-                    new_calls = current_calls_handled - user.total_calls_handled
+                    new_calls = current_calls_handled - user.last_calls_handled
                     if new_calls > 0:
                         points_for_this_agent_round += new_calls * GAMIFICATION_RULES['call_completed']
                         logger.debug(f"Agente {sharpen_username}: +{new_calls * GAMIFICATION_RULES['call_completed']} por {new_calls} nuevas llamadas.")
 
-                    if current_quality_score > user.last_quality_score and current_quality_score >= GAMIFICATION_RULES['quality_threshold_for_bonus']:
-                        points_diff = current_quality_score - user.last_quality_score
-                        if points_diff > 0:
-                            points_to_add = int(points_diff * GAMIFICATION_RULES['quality_bonus_per_point'])
-                            points_for_this_agent_round += points_to_add
-                            logger.debug(f"Agente {sharpen_username}: +{points_to_add} por mejora de calidad (de {user.last_quality_score:.1f} a {current_quality_score:.1f}).")
-                    elif current_quality_score >= GAMIFICATION_RULES['quality_threshold_for_bonus'] and user.last_quality_score < GAMIFICATION_RULES['quality_threshold_for_bonus']:
-                        # Bono por cruzar el umbral por primera vez
-                        points_for_this_agent_round += GAMIFICATION_RULES['quality_bonus_per_point'] * 5 # Bono inicial al cruzar el umbral, ej. 5 puntos extra
-                        logger.debug(f"Agente {sharpen_username}: +{GAMIFICATION_RULES['quality_bonus_per_point'] * 5} por cruzar umbral de calidad.")
-
-                    # Opción 3: Bono por tasa de resolución
-                    if current_resolution_rate >= GAMIFICATION_RULES['good_resolution_rate_threshold'] and \
-                        user.last_resolution_rate < GAMIFICATION_RULES['good_resolution_rate_threshold']:
-                        points_for_this_agent_round += GAMIFICATION_RULES['resolution_rate_bonus']
-                        logger.debug(f"Agente {sharpen_username}: +{GAMIFICATION_RULES['resolution_rate_bonus']} por alcanzar alta tasa de resolución.")
-
-                    # Añadir puntos al usuario si hay alguno
+                    # Use F() expressions for safe updates of points
                     if points_for_this_agent_round > 0:
-                        user.add_points(points_for_this_agent_round) # add_points ya usa F() y check_level_up()
+                        user.gamification_points = F('gamification_points') + points_for_this_agent_round
+                        user.last_point_update = timezone.now()
                         logger.info(f"Agregados {points_for_this_agent_round} puntos a {user.username}. Total: {user.gamification_points}. Nivel: {user.gamification_level}")
-                    else:
-                        logger.debug(f"No hay puntos que añadir para {user.username} en esta ronda.")
 
-                    if points_for_this_agent_round > 0:
-                        user.add_points(points_for_this_agent_round)
-                        user.last_point_update = timezone.now() # Actualiza la última vez que se actualizaron los puntos
-                        user.save(update_fields=['total_calls_handled', 'last_point_update', 'last_quality_score', 'last_resolution_rate']) # Asegúrate de guardar los campos actualizados
-                        logger.info(f"Agregados {points_for_this_agent_round} puntos a {user.username}. Total: {user.gamification_points}. Nivel: {user.gamification_level}")
-                    else:
-                        logger.debug(f"No hay puntos que añadir para {user.username} en esta ronda.")
-                    
+                    # Update all last known values
                     user.last_calls_handled = current_calls_handled
                     user.last_quality_score = current_quality_score
                     user.last_resolution_rate = current_resolution_rate
-                    user.last_point_update = timezone.now()
-                    user.save(update_fields=['last_calls_handled', 'last_quality_score', 'last_resolution_rate', 
-                                            'last_point_update', 'first_processed_gamification_data'])
+                    
+                    # Save all changes in a single query within the transaction
+                    user.save(update_fields=['gamification_points', 'last_calls_handled', 
+                                             'last_quality_score', 'last_resolution_rate', 'last_point_update'])
+            
             except User.DoesNotExist:
                 logger.warning(f"Usuario Django no encontrado para Sharpen username: {sharpen_username}. Saltando.")
             except Exception as e:
-                logger.error(f"Error procesando datos para Sharpen username {sharpen_username}: {e}", exc_info=True) # exc_info=True para traceback completo
+                logger.error(f"Error procesando datos para Sharpen username {sharpen_username}: {e}", exc_info=True)
 
     except Exception as e:
         logger.exception(f"Error general en update_agent_gamification_scores: {e}")
@@ -155,9 +128,12 @@ def update_agent_gamification_scores():
 
 @shared_task
 def broadcast_calls_update():
-    global _last_on_hold_checksum, _last_live_queue_checksum
     try:
+        last_on_hold_checksum = cache.get('last_on_hold_checksum', None)
+        last_live_queue_checksum = cache.get('last_live_queue_checksum', None)    try:
+
         channel_layer = get_channel_layer()
+
         if not channel_layer:
             logging.error("Error: Channel layer not configured.")
             return
@@ -186,8 +162,9 @@ def broadcast_calls_update():
                     "payload": full_frontend_payload
                 }
             )
-            _last_on_hold_checksum = new_on_hold_checksum
-            _last_live_queue_checksum = new_live_queue_checksum
+
+            cache.set('last_on_hold_checksum', new_on_hold_checksum)
+            cache.set('last_live_queue_checksum', new_live_queue_checksum)
 
         else:
             logger.info("[Celery] No se detectaron cambios en los datos. No se envía actualización a los clientes.")
