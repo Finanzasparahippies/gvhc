@@ -23,30 +23,6 @@ VOSK_MODEL_EN_PATH = os.path.join(BASE_DIR, "models", "vosk-model-small-en-us-0.
 
 nlp = spacy.load("en_core_web_sm")
 
-# FFMPEG_PATH = r'D:\GVHC\ffmpeg-7.1.1-essentials_build\bin' # O C:\ffmpeg\bin, etc.
-# AudioSegment.converter = os.path.join(FFMPEG_PATH, 'ffmpeg.exe') # Para Windows
-
-# # FFMPEG_BIN_DIR = os.path.join(BASE_DIR, "ffmpeg", "bin")
-# os.environ["PATH"] += os.pathsep + FFMPEG_PATH  # Por si otras libs también lo usan
-
-# logger.debug(f"FFMPEG_BIN_DIR: {FFMPEG_PATH}")
-
-# ffmpeg_path = os.path.join(FFMPEG_PATH, "ffmpeg.exe")
-# ffprobe_path = os.path.join(FFMPEG_PATH, "ffprobe.exe")
-
-# if os.path.isfile(ffmpeg_path):
-#     logger.debug(f"ffmpeg found at: {ffmpeg_path}")
-#     AudioSegment.converter = ffmpeg_path
-# else:
-#     logger.error(f"ffmpeg NOT found at specified path: {ffmpeg_path}")
-#     raise FileNotFoundError(f"❌ ffmpeg.exe not found at: {ffmpeg_path}")
-
-# if os.path.isfile(ffprobe_path):
-#     logger.debug(f"ffprobe found at: {ffprobe_path}")
-#     AudioSegment.probe = ffprobe_path
-# else:
-#     logger.error(f"ffprobe NOT found in PATH. Current PATH: {os.environ.get('PATH')}")
-#     raise FileNotFoundError(f"❌ ffprobe.exe not found at: {ffprobe_path}")
 
 if not which("ffmpeg"):
     logger.error("❌ FFmpeg no se encontró en el PATH del sistema. Es necesario para procesar audio.")
@@ -55,19 +31,6 @@ if not which("ffmpeg"):
 
 if not which("ffprobe"):
     logger.error("❌ FFprobe no se encontró en el PATH del sistema.")
-    # raise FileNotFoundError("FFprobe no está instalado o no se encuentra en el PATH.")
-    
-# --- END NEW VERIFICATION STEP ---
-# try:
-#     # Set the full path to the executables
-#     get_prober_name._path = os.path.join(FFMPEG_PATH, "ffprobe.exe")
-#     get_encoder_name._path = os.path.join(FFMPEG_PATH, "ffmpeg.exe")
-#     logger.debug(f"Pydub's internal ffmpeg path set to: {get_encoder_name._path}")
-#     logger.debug(f"Pydub's internal ffprobe path set to: {get_prober_name._path}")
-# except AttributeError:
-#     # Handle cases where _path might not be directly settable in some pydub versions
-#     logger.warning("Could not set pydub's internal ffmpeg/ffprobe paths directly via _path attribute. Relying on PATH environment variable.")
-#     pass # Continue, relying on the os.environ["PATH"] modificatio-
 
 def analyze_transcript(text):
     doc = nlp(text)

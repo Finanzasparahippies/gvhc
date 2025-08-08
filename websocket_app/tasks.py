@@ -14,11 +14,14 @@ from .monitoring import get_resource_metrics
 
 logger = logging.getLogger(__name__)
 
-_last_data_checksums = {
-    'getCallsOnHoldData': None,
-    'liveQueueStatus': None,
-    # Puedes añadir más si tu full_frontend_payload crece
-}
+# _last_data_checksums = {
+#     'getCallsOnHoldData': None,
+#     'liveQueueStatus': None,
+#     # Puedes añadir más si tu full_frontend_payload crece
+# }
+
+_last_on_hold_checksum = None
+_last_live_queue_checksum = None
 
 
 def get_checksum(data_to_hash):
@@ -152,6 +155,7 @@ def update_agent_gamification_scores():
 
 @shared_task
 def broadcast_calls_update():
+    global _last_on_hold_checksum, _last_live_queue_checksum
     try:
         channel_layer = get_channel_layer()
         if not channel_layer:
@@ -164,18 +168,31 @@ def broadcast_calls_update():
         payload_live_queue = async_to_sync(fetch_live_queue_status_data)()
         live_queue_status_data = payload_live_queue.get('liveQueueStatus', []) if isinstance(payload_live_queue, dict) else []
 
-        full_frontend_payload = {
-            "getCallsOnHoldData": calls_on_hold_data,
-            "getLiveQueueStatusData": live_queue_status_data
-        }
-        async_to_sync(channel_layer.group_send)(
-            "calls",
-            {
-                "type": "dataUpdate",
-                "payload": full_frontend_payload
+        new_on_hold_checksum = get_checksum(calls_on_hold_data)
+        new_live_queue_checksum = get_checksum(live_queue_status_data)
+
+        if new_on_hold_checksum != _last_on_hold_checksum or new_live_queue_checksum != _last_live_queue_checksum:
+            logger.info("[Celery] Cambios detectados. Emitiendo actualización a clientes WebSocket.")
+
+           
+            full_frontend_payload = {
+                "getCallsOnHoldData": calls_on_hold_data,
+                "getLiveQueueStatusData": live_queue_status_data
             }
-        )
-        logger.info("[Celery] Emitido a clientes WebSocket (sin control de cambios).")
+            async_to_sync(channel_layer.group_send)(
+                "calls",
+                {
+                    "type": "dataUpdate",
+                    "payload": full_frontend_payload
+                }
+            )
+            _last_on_hold_checksum = new_on_hold_checksum
+            _last_live_queue_checksum = new_live_queue_checksum
+
+        else:
+            logger.info("[Celery] No se detectaron cambios en los datos. No se envía actualización a los clientes.")
+            # Puedes enviar un 'ping' o una señal de que el WS sigue vivo si lo prefieres,
+            # pero el frontend ya tiene un mecanismo de ping.
 
     except Exception as e:
         logger.exception(f"Error en Celery broadcast_calls_update: {e}")

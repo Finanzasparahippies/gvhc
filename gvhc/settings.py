@@ -328,9 +328,9 @@ CORS_ALLOWED_ORIGINS = [
     "http://localhost:8000",
     "https://api-current.iz1.sharpen.cx",
     "https://gvhc-backend.onrender.com",
-    "https://gvhc-backend-fsqa.onrender.com"
-    "https://gvhc-worker.onrender.com"
-    "https://gvhc-beat.onrender.com"
+    "https://gvhc-backend-fsqa.onrender.com",
+    "https://gvhc-worker.onrender.com",
+    "https://gvhc-beat.onrender.com",
 ]
 CORS_ALLOWED_ORIGIN_REGEXES = [
     r"^https://.*\.github\.dev$",

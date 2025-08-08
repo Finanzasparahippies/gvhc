@@ -24,6 +24,27 @@ class CallsConsumer(AsyncWebsocketConsumer):
         
         # Enviar mensaje de confirmación de conexión
         await self.send(text_data=json.dumps({"message": "WebSocket conectado"}))
+        try:
+            # Importa las funciones de fetch que usas en Celery
+            from .fetch_script import fetch_calls_on_hold_data, fetch_live_queue_status_data
+            
+            calls_on_hold_data = await fetch_calls_on_hold_data()
+            live_queue_status_data = await fetch_live_queue_status_data()
+
+            initial_payload = {
+                "getCallsOnHoldData": calls_on_hold_data.get('getCallsOnHoldData', []),
+                "getLiveQueueStatusData": live_queue_status_data.get('liveQueueStatus', [])
+            }
+            
+            await self.send(text_data=json.dumps({
+                "type": "dataUpdate",
+                "payload": initial_payload
+            }))
+            logger.info(f"Enviado estado inicial de datos al nuevo cliente: {self.channel_name}")
+
+        except Exception as e:
+            logger.error(f"Error al enviar datos iniciales a nuevo cliente: {e}", exc_info=True)
+        # --- FIN DE LA MODIFICACIÓN ---
 
     async def disconnect(self, close_code):
         # Salir del grupo de canales al desconectar
