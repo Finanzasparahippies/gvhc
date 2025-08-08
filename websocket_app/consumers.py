@@ -53,8 +53,22 @@ class CallsConsumer(AsyncWebsocketConsumer):
         )
 
     async def receive(self, text_data):
-        # No specific receive logic needed if it's just for broadcasting
-        pass
+        """
+        Este método maneja los mensajes recibidos del cliente WebSocket.
+        Responde con un 'pong' si recibe un 'ping'.
+        """
+        try:
+            data = json.loads(text_data)
+            if data.get('type') == 'ping':
+                # Si el cliente envía un 'ping', responde con un 'pong'
+                await self.send(text_data=json.dumps({'type': 'pong'}))
+                logger.debug("Received ping, sent pong.")
+            # Puedes añadir aquí cualquier otra lógica para manejar diferentes tipos de mensajes
+            # Por ejemplo, si el frontend necesita enviar comandos.
+        except json.JSONDecodeError:
+            logger.error("Received non-JSON data on WebSocket.")
+        except Exception as e:
+            logger.error(f"Error handling received message: {e}")
     
     async def dataUpdate(self, event):
         """
