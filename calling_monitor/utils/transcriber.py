@@ -21,6 +21,10 @@ BASE_DIR = os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__fil
 VOSK_MODEL_ES_PATH = os.path.join(BASE_DIR, "models", "vosk-model-small-es-0.42")
 VOSK_MODEL_EN_PATH = os.path.join(BASE_DIR, "models", "vosk-model-small-en-us-0.15")
 
+ffmpeg_local_path = os.path.join(BASE_DIR, "env", "ffmpeg", "bin")
+
+if ffmpeg_local_path not in os.environ["PATH"]:
+    os.environ["PATH"] = ffmpeg_local_path + os.pathsep + os.environ["PATH"]
 nlp = spacy.load("en_core_web_sm")
 
 

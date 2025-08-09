@@ -2,7 +2,12 @@
 REM --- run_websocket.bat ---
 
 REM Establece la ruta de ffmpeg para esta sesión de terminal.
-set "FFMPEG_PATH=D:\GVHC\ffmpeg-7.1.1-essentials_build\bin"
+set "FFMPEG_PATH=D:\GVHC\09-gvhc\gvhc\env\ffmpeg\bin"
+
+REM Elimina la ruta anterior de FFmpeg para evitar conflictos.
+set "PATH=%PATH:D:\GVHC\ffmpeg-7.1.1-essentials_build\bin=%"
+
+REM Agrega la nueva ruta de FFmpeg al PATH.
 set "PATH=%FFMPEG_PATH%;%PATH%"
 
 echo.
