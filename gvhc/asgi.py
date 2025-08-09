@@ -17,10 +17,18 @@ from .jwt_middleware import JWTAuthMiddleware
 
 os.environ.setdefault("DJANGO_SETTINGS_MODULE", "gvhc.settings")
 
-application = ProtocolTypeRouter({
-    "http": get_asgi_application(),
-    "websocket":
-        JWTAuthMiddleware(  # Reemplaza AuthMiddlewareStack con el tuyo
-            URLRouter(routing.websocket_urlpatterns)
-        )
+django_asgi_app = get_asgi_application()
+
+# 2. Define las rutas de WebSocket
+websocket_app = URLRouter(routing.websocket_urlpatterns)
+
+# 3. Combina todo en un ProtocolTypeRouter
+# Esto maneja las solicitudes HTTP y WebSocket
+application_without_middleware = ProtocolTypeRouter({
+    "http": django_asgi_app,
+    "websocket": websocket_app,
 })
+
+# 4. Aplica el middleware a toda la aplicación
+# Ahora, JWTAuthMiddleware se ejecutará después de que Django se haya inicializado
+application = JWTAuthMiddleware(application_without_middleware)

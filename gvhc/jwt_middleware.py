@@ -2,12 +2,14 @@
 from channels.auth import AuthMiddleware
 from django.db import close_old_connections
 from urllib.parse import parse_qs
-from rest_framework_simplejwt.tokens import AccessToken
-from django.contrib.auth import get_user_model
 from channels.db import database_sync_to_async
 
 @database_sync_to_async
 def get_user_from_token(token):
+
+    from rest_framework_simplejwt.tokens import AccessToken
+    from django.contrib.auth import get_user_model
+    
     User = get_user_model()
     try:
         access_token_obj = AccessToken(token)
