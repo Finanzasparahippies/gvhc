@@ -60,19 +60,20 @@ def update_agent_gamification_scores():
     logger.info("Iniciando tarea de actualización de gamificación de agentes...")
     try:
         sharpen_agent_data = async_to_sync(fetch_agent_performance_data)()
-            
-            if not sharpen_agent_data:
-                logger.warning("No se recibieron datos de agentes de Sharpen. Saltando actualización de gamificación.")
-                return
+        
+        # Corregir la indentación de esta sección
+        if not sharpen_agent_data:
+            logger.warning("No se recibieron datos de agentes de Sharpen. Saltando actualización de gamificación.")
+            return # Usa 'return' para salir de la función, 'continue' solo funciona en bucles
 
-            for agent_data in sharpen_agent_data:
-                sharpen_username = agent_data.get('username')
-                if not sharpen_username:
-                    logger.warning(f"Dato de agente de Sharpen sin 'username'. Saltando: {agent_data}")
-                    continue
+        for agent_data in sharpen_agent_data:
+            sharpen_username = agent_data.get('username')
+            if not sharpen_username:
+                logger.warning(f"Dato de agente de Sharpen sin 'username'. Saltando: {agent_data}")
+                continue
 
             try:
-                with transaction.atomic(): 
+                with transaction.atomic():
                     user, created = User.objects.get_or_create(
                         sharpen_username=sharpen_username,
                         defaults={
@@ -130,8 +131,8 @@ def update_agent_gamification_scores():
 def broadcast_calls_update():
     try:
         last_on_hold_checksum = cache.get('last_on_hold_checksum', None)
-        last_live_queue_checksum = cache.get('last_live_queue_checksum', None)    try:
-
+        last_live_queue_checksum = cache.get('last_live_queue_checksum', None)    
+        
         channel_layer = get_channel_layer()
 
         if not channel_layer:
