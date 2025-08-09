@@ -173,16 +173,11 @@ async def fetch_live_queue_status_data():
     sql_query = """
         SELECT 
             `queue`.`queueName` AS "Queue Name", 
-            COUNT(`commType`) AS "Call Count", 
-            FROM_UNIXTIME(FLOOR(UNIX_TIMESTAMP(NOW())/(5))*(5)) AS "intervals" 
+            COUNT(`commType`) AS "Call Count"
         FROM 
             `fathomvoice`.`fathomQueues`.`queueCallManager` 
         GROUP BY 
             `Queue Name` 
-        UNION ALL -- Usar UNION ALL si quieres todas las filas de ambos selects
-        SELECT 
-            null, null, FROM_UNIXTIME(FLOOR(UNIX_TIMESTAMP(NOW())/(5))*(5)) AS "intervals"
-        LIMIT 1 -- Este LIMIT solo aplica al segundo SELECT, si se usa UNION ALL
     """
 
     payload = {
@@ -206,4 +201,5 @@ async def fetch_live_queue_status_data():
                     row_dict[columns[i]] = value
             parsed_data.append(row_dict)
         return {"liveQueueStatus": parsed_data} # Envuelve en el dict esperado por tu consumer
+    logger.warning("No data or error received from Sharpen for Live Queue Status. Returning empty.")
     return {"liveQueueStatus": []}
