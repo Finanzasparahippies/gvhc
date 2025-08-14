@@ -25,6 +25,7 @@ ffmpeg_local_path = os.path.join(BASE_DIR, "env", "ffmpeg", "bin")
 
 if ffmpeg_local_path not in os.environ["PATH"]:
     os.environ["PATH"] = ffmpeg_local_path + os.pathsep + os.environ["PATH"]
+    
 nlp = spacy.load("en_core_web_sm")
 
 

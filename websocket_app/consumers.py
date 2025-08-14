@@ -3,6 +3,7 @@ import json
 from channels.generic.websocket import AsyncWebsocketConsumer
 import logging
 from .fetch_script import fetch_calls_on_hold_data, fetch_live_queue_status_data
+import asyncio
 
 logger = logging.getLogger(__name__)
 
@@ -10,11 +11,26 @@ class CallsConsumer(AsyncWebsocketConsumer):
     """
     Este consumer maneja las conexiones WebSocket para las actualizaciones de llamadas.
     """
+
+    async def send_heartbeat(self):
+        while True:
+            try:
+                await asyncio.sleep(20)  # cada 20 segundos
+                await self.send(text_data=json.dumps({"type": "heartbeat"}))
+                logger.debug(f"💓 Heartbeat enviado a {self.channel_name}")
+            except asyncio.CancelledError:
+                logger.info(f"⛔ Heartbeat cancelado para {self.channel_name}")
+                break
+            except Exception as e:
+                logger.error(f"❌ Error en heartbeat: {e}")
+                break
+
+
     async def connect(self):
         self.group_name = "calls"  # Nombre del grupo para broadcast
 
         await self.accept()
-        # Unirse al grupo de canales
+        await self.send(text_data=json.dumps({"message": "WebSocket conectado"}))
         await self.channel_layer.group_add(
             self.group_name,
             self.channel_name
@@ -23,15 +39,18 @@ class CallsConsumer(AsyncWebsocketConsumer):
 
         logger.info(f"Cliente conectado al grupo '{self.group_name}' con channel_name: {self.channel_name}")
         
-        # Enviar mensaje de confirmación de conexión
-        await self.send(text_data=json.dumps({"message": "WebSocket conectado"}))
+        self.heartbeat_task = asyncio.create_task(self.send_heartbeat())
+
         try:            
             calls_on_hold_data = await fetch_calls_on_hold_data()
             live_queue_status_data = await fetch_live_queue_status_data()
 
+            calls_data = calls_on_hold_data.get("data") or calls_on_hold_data.get("getCallsOnHoldData") or []
+            live_queue_data = live_queue_status_data.get("data") or live_queue_status_data.get("liveQueueStatus") or []
+
             initial_payload = {
-                "getCallsOnHoldData": calls_on_hold_data.get('getCallsOnHoldData', []),
-                "getLiveQueueStatusData": live_queue_status_data.get('liveQueueStatus', [])
+                "getCallsOnHoldData": calls_data,
+                "getLiveQueueStatusData": live_queue_data
             }
             
             await self.send(text_data=json.dumps({
@@ -51,6 +70,9 @@ class CallsConsumer(AsyncWebsocketConsumer):
             self.group_name,
             self.channel_name
         )
+        if hasattr(self, "heartbeat_task"):
+            self.heartbeat_task.cancel()
+
 
     async def receive(self, text_data):
         """
