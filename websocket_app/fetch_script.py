@@ -12,6 +12,27 @@ from django.utils import timezone # Para manejar zonas horarias y fechas actuale
 
 logger = logging.getLogger(__name__)
 
+SQL_CALL_COUNT_BY_QUEUE  = """
+    SELECT 
+        `queue`.`queueName` AS "Queue Name", 
+        COUNT(`commType`) AS "Call Count"
+    FROM 
+        `fathomvoice`.`fathomQueues`.`queueCallManager` 
+    GROUP BY 
+        `Queue Name`
+"""
+def parse_sharpen_query_result(data: dict) -> list[dict]:
+    parsed = []
+    columns = [col['name'] for col in data.get('columns', [])]
+    for row in data.get('rows', []):
+        row_dict = {}
+        for i, value in enumerate(row):
+            if i < len(columns):
+                row_dict[columns[i]] = value
+        parsed.append(row_dict)
+    return parsed
+
+
 async def _forward_to_sharpen_async(endpoint: str, full_payload: dict):
     """Función base que realiza la llamada asíncrona a Sharpen."""
 
@@ -69,15 +90,6 @@ async def _call_sharpen_api_async(endpoint: str, payload: dict):
         full_payload = {**auth_payload, **payload}
         return await _forward_to_sharpen_async(endpoint, full_payload)
 
-    # Puedes añadir aquí otros manejos especiales de endpoints...
-    # ...
-    elif endpoint == "V2/voice/callRecordings/createRecordingURL/":
-        full_payload = {**auth_payload, **payload}
-        # With urljoin, you can pass the endpoint as Sharpen expects it.
-        # If Sharpen truly wants 'V2/voice/callRecordings/createRecordingURL/',
-        # then pass it with the trailing slash here.
-        return await _forward_to_sharpen_async("V2/voice/callRecordings/createRecordingURL/", full_payload)
-
     # Manejo genérico por defecto para todos los demás endpoints
     else:
         full_payload = {**auth_payload, **payload}
@@ -91,15 +103,7 @@ async def fetch_agent_performance_data():
     endpoint = "V2/query/" # Asumiendo que usarás V2/query/ con SQL para esto
     today_utc = timezone.now().astimezone(timezone.utc).strftime('%Y-%m-%d')
 
-    sql_query = """
-        SELECT 
-            `queue`.`queueName` AS "Queue Name", 
-            COUNT(`commType`) AS "Call Count"
-        FROM 
-            `fathomvoice`.`fathomQueues`.`queueCallManager` 
-        GROUP BY 
-            `Queue Name`
-    """
+    sql_query = SQL_CALL_COUNT_BY_QUEUE 
     
     payload = {
         "method": "query",
@@ -113,30 +117,26 @@ async def fetch_agent_performance_data():
         if data and "error" not in data and "rows" in data: # Asumiendo que los resultados de V2/query/ vienen en 'rows'
             # Sharpen's V2/query/ often returns data in a 'rows' list with 'columns'
             # You'll need to parse this into a list of dictionaries for easier use.
-            parsed_data = []
-            columns = [col['name'] for col in data.get('columns', [])]
-            for row in data['rows']:
-                agent_dict = {}
-                for i, value in enumerate(row):
-                    if i < len(columns):
-                        if columns[i] in ['quality_score', 'issue_resolution_rate'] and value is not None:
-                            try:
-                                agent_dict[columns[i]] = float(value)
-                            except ValueError:
-                                agent_dict[columns[i]] = 0.0 # Valor por defecto si la conversión falla
-                        elif columns[i] == 'calls_handled_today' and value is not None:
-                            try:
-                                agent_dict[columns[i]] = int(value)
-                            except ValueError:
-                                agent_dict[columns[i]] = 0
-                        else:
-                            agent_dict[columns[i]] = value
-                parsed_data.append(agent_dict)
+            parsed_data = parse_sharpen_query_result(data)
             
             for agent in parsed_data:
-                agent['calls_handled_today'] = agent.get('calls_handled_today') or 0
-                agent['quality_score'] = agent.get('quality_score') or 0.0
-                agent['issue_resolution_rate'] = agent.get('issue_resolution_rate') or 0.0
+                if 'quality_score' in agent:
+                    try:
+                        agent['quality_score'] = float(agent['quality_score'] or 0)
+                    except ValueError:
+                        agent['quality_score'] = 0.0
+
+                if 'issue_resolution_rate' in agent:
+                    try:
+                        agent['issue_resolution_rate'] = float(agent['issue_resolution_rate'] or 0)
+                    except ValueError:
+                        agent['issue_resolution_rate'] = 0.0
+
+                if 'calls_handled_today' in agent:
+                    try:
+                        agent['calls_handled_today'] = int(agent['calls_handled_today'] or 0)
+                    except ValueError:
+                        agent['calls_handled_today'] = 0
 
             logger.info(f"Fetched {len(parsed_data)} agents performance data from Sharpen via SQL.")
             return parsed_data
@@ -170,15 +170,7 @@ async def fetch_live_queue_status_data():
     """
     endpoint = "V2/query/"
 
-    sql_query = """
-        SELECT 
-            `queue`.`queueName` AS "Queue Name", 
-            COUNT(`commType`) AS "Call Count"
-        FROM 
-            `fathomvoice`.`fathomQueues`.`queueCallManager` 
-        GROUP BY 
-            `Queue Name` 
-    """
+    sql_query = SQL_CALL_COUNT_BY_QUEUE 
 
     payload = {
         "method": "query",
@@ -192,14 +184,7 @@ async def fetch_live_queue_status_data():
 
     if data and "error" not in data and "rows" in data:
         # Parsear los resultados de V2/query/ de 'rows' y 'columns'
-        parsed_data = []
-        columns = [col['name'] for col in data.get('columns', [])]
-        for row in data['rows']:
-            row_dict = {}
-            for i, value in enumerate(row):
-                if i < len(columns):
-                    row_dict[columns[i]] = value
-            parsed_data.append(row_dict)
+        parsed_data = parse_sharpen_query_result(data)
         return {"liveQueueStatus": parsed_data} # Envuelve en el dict esperado por tu consumer
     logger.warning("No data or error received from Sharpen for Live Queue Status. Returning empty.")
     return {"liveQueueStatus": []}
