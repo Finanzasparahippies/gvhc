@@ -409,5 +409,9 @@ CELERY_BEAT_SCHEDULE = {
     # but typically email notifications are triggered by events (like post_save signal).
 }
 
+BROKER_TRANSPORT_OPTIONS = {
+    'ssl_cert_reqs': None
+}
+
 print(f"FINAL REDIS URL: {REDIS_URL}")
 print(f"CELERY_BROKER_URL: {CELERY_BROKER_URL}")
