@@ -90,7 +90,13 @@ def convert_result_datetimes_to_local(result: dict) -> dict:
     elif 'getAgentsData' in result and isinstance(result['getAgentsData'], list):
         data_to_process = result['getAgentsData']
         logger.debug("Procesando fechas en la clave 'getAgentsData' (lista de agentes).")
-
+    elif 'getCallsOnHoldData' in result and isinstance(result['getCallsOnHoldData'], list):
+        data_to_process = result['getCallsOnHoldData']
+        logger.debug("Procesando fechas en la clave 'getCallsOnHoldData' (lista de llamadas en espera).")
+    elif 'getAgentStatusData' in result and isinstance(result['getAgentStatusData'], dict):
+        data_to_process = [result['getAgentStatusData']] # Envuelve el objeto en una lista para procesarlo
+        is_single_object = True # Marca que es un objeto único
+        logger.debug("Procesando fechas en la clave 'getAgentStatusData' (objeto único).")
     elif 'table' in result and isinstance(result['table'], str):
 
         try:
