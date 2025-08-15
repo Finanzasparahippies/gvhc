@@ -22,6 +22,7 @@ import ssl # Necesario si vas a manejar CERT_REQUIRED/OPTIONAL programáticament
 
 env = environ.Env()
 environ.Env.read_env()
+SECRET_KEY = os.environ.get("SECRET_KEY", get_random_secret_key())
 
 BASE_DIR = Path(__file__).resolve().parent.parent
 print(BASE_DIR / '.env')
@@ -58,15 +59,13 @@ else: # development
     REDIS_URL = os.getenv('REDIS_URL_DEV', 'redis://localhost:6379/')
     
 CHANNEL_LAYERS = {
-    'default': {
-        'BACKEND': 'channels_redis.core.RedisChannelLayer', 
-        'CONFIG': {
-            "hosts": [
-                {
-                    "address": REDIS_URL,
-                    "ssl_cert_reqs": ssl.CERT_NONE,
-                }
-            ],
+    "default": {
+        "BACKEND": "channels_redis.core.RedisChannelLayer",
+        "CONFIG": {
+            "hosts": [os.environ.get("REDIS_URL_DEV")],
+            # Asegúrate de que esta configuración coincida con el ssl_cert_reqs de la URL
+            "symmetric_encryption_keys":[SECRET_KEY],
+            # "ssl_cert_reqs": None,
         },
     },
 }
@@ -116,7 +115,6 @@ DEFAULT_FILE_STORAGE = 'cloudinary_storage.storage.MediaCloudinaryStorage'
 # See https://docs.djangoproject.com/en/5.1/howto/deployment/checklist/
 
 # SECURITY WARNING: keep the secret key used in production secret!
-SECRET_KEY = os.environ.get("SECRET_KEY", get_random_secret_key())
 
 
 # Application definition
@@ -375,8 +373,8 @@ MEDIA_URL = '/media/'
 MEDIA_ROOT = os.path.join(BASE_DIR, 'media/')
 
 
-CELERY_BROKER_URL = REDIS_URL
-CELERY_RESULT_BACKEND = REDIS_URL
+CELERY_BROKER_URL = os.environ.get("REDIS_URL_DEV")
+CELERY_RESULT_BACKEND = os.environ.get("REDIS_URL_DEV")
 CELERY_ACCEPT_CONTENT = ['json']
 CELERY_TASK_SERIALIZER = 'json'
 CELERY_RESULT_SERIALIZER = 'json'
@@ -403,7 +401,7 @@ CELERY_BEAT_SCHEDULE = {
         'task': 'users.tasks.update_agent_gamification_scores', # Asegúrate que el path sea correcto
         'schedule': timedelta(hours=1), # Ajusta la frecuencia (ej: cada hora, cada día, etc.)
         'args': (),
-        'options': {'queue': 'gamification'}
+        'options': {'queue': 'default'}
     },
     # You could also schedule the email task if it needs to be run periodically,
     # but typically email notifications are triggered by events (like post_save signal).

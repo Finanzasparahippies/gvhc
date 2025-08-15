@@ -160,7 +160,8 @@ async def fetch_calls_on_hold_data():
     data = await _call_sharpen_api_async(endpoint, payload)
 
     if data and "error" not in data:
-        return data
+        calls_data = data.get("getCallsOnHoldData", []) # <-- Aquí se define 'calls_data'
+        return {"getCallsOnHoldData": calls_data}
     logger.warning("No data or error received from Sharpen for getCallsOnHoldData. Returning empty.")
     return {"getCallsOnHoldData": []}
 
@@ -182,9 +183,9 @@ async def fetch_live_queue_status_data():
 
     data = await _call_sharpen_api_async(endpoint, payload)
 
-    if data and "error" not in data and "rows" in data:
+    if data and "error" not in data and "data" in data: 
         # Parsear los resultados de V2/query/ de 'rows' y 'columns'
         parsed_data = parse_sharpen_query_result(data)
-        return {"liveQueueStatus": parsed_data} # Envuelve en el dict esperado por tu consumer
+        return {"liveQueueStatus": parsed_data}
     logger.warning("No data or error received from Sharpen for Live Queue Status. Returning empty.")
     return {"liveQueueStatus": []}

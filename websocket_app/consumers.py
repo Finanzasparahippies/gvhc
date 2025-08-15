@@ -6,6 +6,7 @@ from .fetch_script import fetch_calls_on_hold_data, fetch_live_queue_status_data
 import asyncio
 
 logger = logging.getLogger(__name__)
+CALLS_GROUP_NAME = "calls"
 
 class CallsConsumer(AsyncWebsocketConsumer):
     """
@@ -27,7 +28,7 @@ class CallsConsumer(AsyncWebsocketConsumer):
 
 
     async def connect(self):
-        self.group_name = "calls"  # Nombre del grupo para broadcast
+        self.group_name = CALLS_GROUP_NAME  # Nombre del grupo para broadcast
 
         await self.accept()
         await self.send(text_data=json.dumps({"message": "WebSocket conectado"}))
@@ -45,19 +46,20 @@ class CallsConsumer(AsyncWebsocketConsumer):
             calls_on_hold_data = await fetch_calls_on_hold_data()
             live_queue_status_data = await fetch_live_queue_status_data()
 
-            calls_data = calls_on_hold_data.get("data") or calls_on_hold_data.get("getCallsOnHoldData") or []
-            live_queue_data = live_queue_status_data.get("data") or live_queue_status_data.get("liveQueueStatus") or []
+            calls_data = calls_on_hold_data.get("getCallsOnHoldData") or []
+            live_queue_data = live_queue_status_data.get("liveQueueStatus") or []
 
             initial_payload = {
                 "getCallsOnHoldData": calls_data,
                 "getLiveQueueStatusData": live_queue_data
             }
-            
+            logger.debug(f"Payload que se enviará vía WebSocket: {json.dumps(initial_payload)}")
             await self.send(text_data=json.dumps({
                 "type": "dataUpdate",
                 "payload": initial_payload
             }))
             logger.info(f"Enviado estado inicial de datos al nuevo cliente: {self.channel_name}")
+
 
         except Exception as e:
             logger.error(f"Error al enviar datos iniciales a nuevo cliente: {e}", exc_info=True)
@@ -91,17 +93,28 @@ class CallsConsumer(AsyncWebsocketConsumer):
             logger.error("Received non-JSON data on WebSocket.")
         except Exception as e:
             logger.error(f"Error handling received message: {e}")
-    
-    async def dataUpdate(self, event):
+
+    async def send_message(self, event):
         """
-        Este método es invocado por la tarea de Celery.
-        Recibe el payload y lo retransmite al cliente WebSocket en el formato esperado.
+        Método genérico para reenviar cualquier mensaje recibido del channel layer
+        al cliente WebSocket. El nombre del método debe coincidir con el 'type'
+        en el grupo_send de Celery.
         """
-        payload = event.get('payload', {})
+        message = event['message']
+        await self.send(text_data=message)
+        logger.debug(f"Enviando mensaje recibido de Celery. Tamaño del payload: {len(message)} bytes.")
+
+    # async def dataUpdate(self, event):
+    #     """
+    #     Este método es invocado por la tarea de Celery.
+    #     Recibe el payload y lo retransmite al cliente WebSocket en el formato esperado.
+    #     """
+    #     message_json = event.get('message')
         
-        # Formatear el mensaje como lo espera el frontend
-        await self.send(text_data=json.dumps({
-            "type": "dataUpdate",  # El tipo de mensaje que el hook de React reconoce
-            "payload": payload
-        }))
-        logger.debug(f"Enviando actualización de llamadas al cliente {self.channel_name}. Payload size: {len(json.dumps(payload))} bytes.") # Use debug for verbose data sending
+    #     if message_json:
+    #         # Los datos ya están formateados y serializados por Celery
+    #         # Solo necesitas retransmitirlos al cliente.
+    #         await self.send(text_data=message_json)
+    #         logger.debug(f"Enviando actualización de llamadas al cliente {self.channel_name}. Payload size: {len(message_json)} bytes.")
+    #     else:
+    #         logger.warning("Mensaje de actualización de Celery no contiene 'message'.")
