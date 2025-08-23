@@ -15,10 +15,12 @@ RUN apt-get update && apt-get install -y \
     && pip install -r requirements.txt
 
 # Recolectar archivos estáticos
-RUN python manage.py collectstatic --noinput
+CMD ["./start.sh"]
 
 # Puerto de Daphne
 EXPOSE 8080
 
 # Puedes dejar el CMD vacío aquí porque Fly usará procesos distintos por máquina
 # CMD ["daphne", "gvhc.asgi:application", "--port", "8080", "--bind", "0.0.0.0", "-v3"]
+COPY start.sh /app/start.sh
+ENTRYPOINT ["/app/start.sh"]

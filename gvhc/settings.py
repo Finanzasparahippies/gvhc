@@ -49,15 +49,15 @@ else: # development (o cualquier otro valor de MODE)
 # Render usa REDIS_URL para Redis
 if MODE == "production":
     # Ahora, asume que REDIS_URL_PROD ya tiene el parámetro SSL
-    REDIS_URL = os.getenv('REDIS_URL_PROD')
+    REDIS_URL = os.getenv('REDIS_URL_PROD', 'redis://redis:6379/0')
     if not REDIS_URL:
         raise Exception("REDIS_URL_PROD must be set in production mode.")
     # Elimina esta sección, ya no es necesaria:
     # if 'onrender.com' in REDIS_URL and 'ssl_cert_reqs' not in REDIS_URL:
     #     REDIS_URL += '?ssl_cert_reqs=none'
 else: # development
-    REDIS_URL = os.getenv('REDIS_URL_DEV', 'redis://localhost:6379/')
-    
+    REDIS_URL = os.getenv('REDIS_URL_DEV', 'redis://localhost:6379/0')
+
 CHANNEL_LAYERS = {
     "default": {
         "BACKEND": "channels_redis.core.RedisChannelLayer",
@@ -213,8 +213,8 @@ DATABASES = {
             'NAME': os.getenv('POSTGRES_NAME'),
             'USER': os.getenv('POSTGRES_DB_USER'),
             'PASSWORD': os.getenv('POSTGRES_PASSWORD'),
-            'HOST': os.getenv('POSTGRES_HOST'),
-            'PORT': os.getenv('POSTGRES_PORT'),             
+            'HOST': os.getenv('POSTGRES_HOST', 'db'),
+            'PORT': os.getenv('POSTGRES_PORT', '5432'),
         }
 }
 

@@ -21,7 +21,7 @@ class StepSerializer(serializers.ModelSerializer):
 
     class Meta:
         model = Step
-        fields = ['number', 'text', 'image_url', 'excel_content']
+        fields = ['number', 'text', 'image_url', 'excel_content', 'is_visible']
 
     def get_excel_content(self, obj):
         if not obj.excel_file:
@@ -53,7 +53,7 @@ class AnswerSerializer(serializers.ModelSerializer):
 
     class Meta:
         model = Answer
-        fields = '__all__'
+        fields = ['id', 'title', 'node_type', 'answer_text', 'relevance', 'steps', 'connections', 'image_url', 'is_visible']
 
     def get_image_url(self, obj):
         if obj.image:
@@ -64,7 +64,7 @@ class AnswerSerializer(serializers.ModelSerializer):
 class SlideSerializer(serializers.ModelSerializer):
     class Meta:
         model = Slide
-        fields = ['id', 'faq', 'question', 'left', 'right', 'up', 'down']
+        fields = ['id', 'faq', 'question', 'left', 'right', 'up', 'down', 'is_visible']
 
 class FaqSerializer(serializers.ModelSerializer):
     answers = serializers.SerializerMethodField() 
