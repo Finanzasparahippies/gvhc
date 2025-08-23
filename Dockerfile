@@ -8,11 +8,10 @@ WORKDIR /app
 COPY . /app
 
 # Instalar dependencias
-RUN apt-get update && apt-get install -y \
-    build-essential \
-    libpq-dev \
-    && pip install --upgrade pip \
-    && pip install -r requirements.txt
+RUN apt-get update && apt-get install -y build-essential libpq-dev && \
+    pip install --upgrade pip && \
+    pip install -r requirements.txt && \
+    rm -rf /root/.cache/pip
 
 # Recolectar archivos estáticos
 CMD ["./start.sh"]
