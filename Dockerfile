@@ -8,21 +8,22 @@ WORKDIR /app
 COPY . /app
 
 # Instalar dependencias
-RUN apt-get update
-RUN apt-get install -y build-essential libpq-dev
+RUN apt-get update && apt-get install -y \
+    build-essential \
+    libpq-dev \
+    libsndfile1 \
+ && rm -rf /var/lib/apt/lists/*
+
 RUN pip install --upgrade pip
 RUN pip install -r requirements.txt
 RUN rm -rf /root/.cache/pip
 
-# Recolectar archivos estáticos
-CMD ["./start.sh"]
+RUN chmod +x /app/start.sh
 
-# Puerto de Daphne
 EXPOSE 8080
+# Recolectar archivos estáticos
+# Puerto de Daphne
 
 # Puedes dejar el CMD vacío aquí porque Fly usará procesos distintos por máquina
 # CMD ["daphne", "gvhc.asgi:application", "--port", "8080", "--bind", "0.0.0.0", "-v3"]
-COPY start.sh /app/start.sh
-RUN chmod +x /app/start.sh
-
 ENTRYPOINT ["/app/start.sh"]
