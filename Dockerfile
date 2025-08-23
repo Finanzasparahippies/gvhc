@@ -1,5 +1,5 @@
 # Dockerfile para desplegar una aplicación Django con Daphne en Fly.io
-FROM python:3.12-slim
+FROM python:3.13-slim
 
 # Establecer directorio de trabajo
 WORKDIR /app
