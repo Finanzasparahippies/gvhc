@@ -7,9 +7,10 @@ from .models import Faq, Answer, Step, Department, ResponseType, Event, Slide
 
 @admin.register(Faq)
 class FaqAdmin(admin.ModelAdmin):
-    list_display = ('id', 'question', 'response_type', 'category', 'created_at', 'keywords')
+    list_display = ('id', 'question', 'response_type', 'category', 'created_at', 'keywords', 'is_visible')
     search_fields = ('question', 'keywords')
     filter_horizontal = ('answers',)
+    list_editable = ('is_visible',)  # Esto permite cambiarlo directamente desde la lista
 
     def get_answers(self, obj):
         return ", ".join([answer.answer_text for answer in obj.answers.all()])
@@ -17,8 +18,9 @@ class FaqAdmin(admin.ModelAdmin):
 
 @admin.register(Answer)
 class AnswerAdmin(admin.ModelAdmin):
-    list_display = ( 'id', 'title','node_type', 'answer_text', 'relevance', 'display_image', 'template')
+    list_display = ( 'id', 'title','node_type', 'answer_text', 'relevance', 'display_image', 'template', 'is_visible')
     search_fields = ('title','answer_text', 'steps')
+    list_editable = ('is_visible',)  # Esto permite cambiarlo directamente desde la lista
 
     def display_image(self, obj):
         if obj.image:
