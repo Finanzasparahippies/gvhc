@@ -77,7 +77,7 @@ print(f"DEBUG is: {DEBUG}")
 print(f"SHARPEN_API_BASE_URL is: {SHARPEN_API_BASE_URL}")
 print(f"REDIS_URL is: {REDIS_URL}")
 
-ALLOWED_HOSTS_STR = os.getenv('ALLOWED_HOSTS', 'localhost,127.0.0.1,gvhc-backend-fsqa.onrender.com,gvhc.netlify.app,gvhc-websocket-mawh.onrender.com')
+ALLOWED_HOSTS_STR = os.getenv('ALLOWED_HOSTS', 'localhost,127.0.0.1,gvhc-backend-fsqa.onrender.com,gvhc.netlify.app,gvhc-websocket-mawh.onrender.com,5.78.159.214')
 ALLOWED_HOSTS_ENV = ALLOWED_HOSTS_STR.split(',')
 
 ALLOWED_HOSTS = [host.strip() for host in ALLOWED_HOSTS_ENV if host.strip()] # Limpiar espacios y vacíos
