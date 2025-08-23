@@ -334,6 +334,7 @@ CORS_ALLOWED_ORIGINS = [
     "https://gvhc-backend-fsqa.onrender.com",
     "https://gvhc-worker.onrender.com",
     "https://gvhc-beat.onrender.com",
+    "5.78.159.214",
 ]
 CORS_ALLOWED_ORIGIN_REGEXES = [
     r"^https://.*\.github\.dev$",
@@ -357,6 +358,7 @@ CSRF_TRUSTED_ORIGINS = [
     "ws://localhost:8001",
     "https://gvhc-websocket.onrender.com",
     "https://gvhc-websocket-mawh.onrender.com",
+    "5.78.159.214",
 ]
 
 CSRF_COOKIE_NAME = 'csrftoken'  # Asegúrate de que este valor sea el correcto
