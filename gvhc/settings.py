@@ -77,7 +77,7 @@ print(f"DEBUG is: {DEBUG}")
 print(f"SHARPEN_API_BASE_URL is: {SHARPEN_API_BASE_URL}")
 print(f"REDIS_URL is: {REDIS_URL}")
 
-ALLOWED_HOSTS_STR = os.getenv('ALLOWED_HOSTS', 'localhost,127.0.0.1,gvhc-backend-fsqa.onrender.com,gvhc.netlify.app,gvhc-websocket-mawh.onrender.com,5.78.159.214')
+ALLOWED_HOSTS_STR = os.getenv('ALLOWED_HOSTS', 'localhost,127.0.0.1,gvhc-backend-fsqa.onrender.com,gvhc.netlify.app,gvhc-websocket-mawh.onrender.com,5.78.159.214,gvhc-backend.top')
 ALLOWED_HOSTS_ENV = ALLOWED_HOSTS_STR.split(',')
 
 ALLOWED_HOSTS = [host.strip() for host in ALLOWED_HOSTS_ENV if host.strip()] # Limpiar espacios y vacíos
@@ -335,6 +335,7 @@ CORS_ALLOWED_ORIGINS = [
     "https://gvhc-worker.onrender.com",
     "https://gvhc-beat.onrender.com",
     "http://5.78.159.214",
+    "https://gvhc-backend.top"
 ]
 CORS_ALLOWED_ORIGIN_REGEXES = [
     r"^https://.*\.github\.dev$",
@@ -359,6 +360,7 @@ CSRF_TRUSTED_ORIGINS = [
     "https://gvhc-websocket.onrender.com",
     "https://gvhc-websocket-mawh.onrender.com",
     "http://5.78.159.214",
+    "https://gvhc-backend.top"
 ]
 
 CSRF_COOKIE_NAME = 'csrftoken'  # Asegúrate de que este valor sea el correcto
