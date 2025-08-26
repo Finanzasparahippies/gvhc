@@ -47,22 +47,14 @@ else: # development (o cualquier otro valor de MODE)
 
 # URL de Redis para Channels
 # Render usa REDIS_URL para Redis
-if MODE == "production":
-    # Ahora, asume que REDIS_URL_PROD ya tiene el parámetro SSL
-    REDIS_URL = os.getenv('REDIS_URL_PROD', 'redis://redis:6379/0')
-    if not REDIS_URL:
-        raise Exception("REDIS_URL_PROD must be set in production mode.")
-    # Elimina esta sección, ya no es necesaria:
-    # if 'onrender.com' in REDIS_URL and 'ssl_cert_reqs' not in REDIS_URL:
-    #     REDIS_URL += '?ssl_cert_reqs=none'
-else: # development
-    REDIS_URL = os.getenv('REDIS_URL_DEV', 'redis://localhost:6379/0')
+REDIS_URL = os.getenv('REDIS_URL_PROD') if MODE == 'production' else os.getenv('REDIS_URL_DEV', 'redis://redis:6379/0')
+
 
 CHANNEL_LAYERS = {
     "default": {
         "BACKEND": "channels_redis.core.RedisChannelLayer",
         "CONFIG": {
-            "hosts": [os.environ.get("REDIS_URL_DEV")],
+            "hosts": [REDIS_URL],
             # Asegúrate de que esta configuración coincida con el ssl_cert_reqs de la URL
             "symmetric_encryption_keys":[SECRET_KEY],
             # "ssl_cert_reqs": None,
@@ -377,8 +369,8 @@ MEDIA_URL = '/media/'
 MEDIA_ROOT = os.path.join(BASE_DIR, 'media/')
 
 
-CELERY_BROKER_URL = os.environ.get("REDIS_URL_DEV")
-CELERY_RESULT_BACKEND = os.environ.get("REDIS_URL_DEV")
+CELERY_BROKER_URL = REDIS_URL
+CELERY_RESULT_BACKEND = REDIS_URL
 CELERY_ACCEPT_CONTENT = ['json']
 CELERY_TASK_SERIALIZER = 'json'
 CELERY_RESULT_SERIALIZER = 'json'
@@ -413,7 +405,7 @@ CELERY_BEAT_SCHEDULE = {
 
 BROKER_TRANSPORT_OPTIONS = {
     'ssl_cert_reqs': None
-}
+} if MODE == "production" else {}
 
 print(f"FINAL REDIS URL: {REDIS_URL}")
 print(f"CELERY_BROKER_URL: {CELERY_BROKER_URL}")
