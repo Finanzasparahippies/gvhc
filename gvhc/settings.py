@@ -26,6 +26,8 @@ SECRET_KEY = os.environ.get("SECRET_KEY", get_random_secret_key())
 
 BASE_DIR = Path(__file__).resolve().parent.parent
 print(BASE_DIR / '.env')
+LOGS_DIR = os.path.join(BASE_DIR, 'logs')
+os.makedirs(LOGS_DIR, exist_ok=True)
 
 load_dotenv(dotenv_path=BASE_DIR / '.env', override=True) 
 
