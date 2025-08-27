@@ -15,7 +15,7 @@ services:
   celery_worker:
     build: .
     container_name: gvhc_celery_worker
-    command: celery -A gvhc worker --loglevel=info -Q default
+    command: celery -A gvhc worker --loglevel=info --concurrency=1 --pool=solo -Q default
     # volumes:
     #   - .:/app
     env_file:
