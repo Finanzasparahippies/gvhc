@@ -253,36 +253,44 @@ LOGGING = {
         },
     },
     'handlers': {
+        'rotating_file': {
+            'level': 'DEBUG',
+            'class': 'logging.handlers.RotatingFileHandler',
+            'filename': os.path.join(LOGS_DIR, 'app.log'),
+            'maxBytes': 5 * 1024 * 1024,  # 5 MB
+            'backupCount': 5,
+            'formatter': 'verbose',
+        },
         'console': {
-            'level': 'DEBUG', # Cambia a INFO si solo quieres ver los INFO y superiores
+            'level': 'DEBUG', # Cambia a INFO si quieres ver solo los logs de nivel INFO y superiores
             'class': 'logging.StreamHandler',
             'formatter': 'simple', # Puedes usar 'verbose' para más detalles
         },
     },
     'loggers': {
         'django': { # Logs de Django
-            'handlers': ['console'],
-            'level': 'INFO', # O 'DEBUG' si quieres ver más logs internos de Django
+            'handlers': ['rotating_file', 'console'],
+            'level': 'DEBUG', # O 'DEBUG' si quieres ver más logs internos de Django
             'propagate': False,
         },
         '': { # Este es el logger por defecto para tu código de aplicación (tu views.py)
-            'handlers': ['console'],
+            'handlers': ['rotating_file', 'console'],  # Envía logs a archivo y consola
             'level': 'DEBUG', # ¡IMPORTANTE! Asegúrate de que esté en DEBUG o INFO
             'propagate': False,
         },
         'channels': {
             'handlers': ['console'],
-            'level': 'DEBUG', # Cambia a INFO en producción si hay demasiados logs
+            'level': 'INFO', # Cambia a INFO en producción si hay demasiados logs
             'propagate': False,
         },
         # Añadir logger para tu app websocket_app
         'websocket_app': {
-            'handlers': ['console'],
+            'handlers': ['console', 'rotating_file'],
             'level': 'DEBUG', # Asegúrate de que los logs de tu consumer se vean
             'propagate': False,
         },
         'calling_monitor': { # Nombre de tu aplicación
-            'handlers': ['console'],
+            'handlers': ['console', 'rotating_file'],
             'level': 'DEBUG', # Cambia a INFO o WARNING en producción
             'propagate': True,
         },

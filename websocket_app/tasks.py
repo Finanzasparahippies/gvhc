@@ -151,11 +151,18 @@ def broadcast_calls_update():
         new_live_queue_checksum = get_checksum(live_queue_status_data)
 
         logger.debug(f"New checksums: OnHold={new_on_hold_checksum}, LiveQueue={new_live_queue_checksum}")
-
+        transitioned_to_empty = (
+            (calls_on_hold_data == [] and last_on_hold_checksum not in [None, get_checksum([])]) or
+            (live_queue_status_data == [] and last_live_queue_checksum not in [None, get_checksum([])])
+        )
         # 2. Comparar los nuevos checksums con los de la caché
-        if new_on_hold_checksum != last_on_hold_checksum or new_live_queue_checksum != last_live_queue_checksum:
+        if (
+            new_on_hold_checksum != last_on_hold_checksum
+            or new_live_queue_checksum != last_live_queue_checksum
+            or transitioned_to_empty
+        ):
             logger.info("[Celery] Cambios detectados. Emitiendo actualización a clientes WebSocket.")
-            
+
             full_frontend_payload = {
                 "type": "dataUpdate",
                 "payload": {
@@ -173,18 +180,6 @@ def broadcast_calls_update():
                     "payload": message_to_send 
                 }
             )
-        # logger.info("[Celery] Enviando actualización a clientes WebSocket (modo de prueba).")
-        # full_frontend_payload = {
-        #     "getCallsOnHoldData": calls_on_hold_data,
-        #     "getLiveQueueStatusData": live_queue_status_data
-        # }
-        # async_to_sync(channel_layer.group_send)(
-        #     "calls",
-        #     {
-        #         "type": "dataUpdate",
-        #         "payload": full_frontend_payload
-        #     }
-        # )
         # 3. Guardar el nuevo estado en la caché
             cache.set('last_on_hold_checksum', new_on_hold_checksum)
             cache.set('last_live_queue_checksum', new_live_queue_checksum)
