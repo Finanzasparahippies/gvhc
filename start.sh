@@ -1,5 +1,4 @@
 #!/bin/bash
-#!/bin/bash
 set -e
 
 echo "Aplicando migraciones..."

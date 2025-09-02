@@ -5,6 +5,9 @@ __pycache__/
 *.db
 *.db-journal  # For temporary SQLite files
 
+# Log files
+app.log*
+
 # Virtual environment directories
 /env/
 /venv/

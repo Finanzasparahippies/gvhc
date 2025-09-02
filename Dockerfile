@@ -4,20 +4,22 @@ FROM python:3.13-slim
 # Establecer directorio de trabajo
 WORKDIR /app
 
-# Copiar archivos del proyecto
-COPY . /app
-
 # Instalar dependencias
 RUN apt-get update && apt-get install -y \
     build-essential \
     libpq-dev \
     libsndfile1 \
+    ffmpeg \
  && rm -rf /var/lib/apt/lists/*
 
-RUN pip install --upgrade pip
-RUN pip install -r requirements.txt
+COPY requirements.txt /app/
+RUN pip install --upgrade pip && pip install -r requirements.txt
+# Descargar modelos de spaCy
 RUN python -m spacy download en_core_web_sm && python -m spacy download es_core_news_sm
 RUN rm -rf /root/.cache/pip
+
+# Copiar archivos del proyecto
+COPY . /app
 
 RUN chmod +x /app/start.sh
 

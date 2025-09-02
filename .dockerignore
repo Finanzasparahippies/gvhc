@@ -1,9 +1,11 @@
-__pycache__
+__pycache__/
 *.pyc
 *.pyo
 *.pyd
-*.sqlite3
+*.db
 .env
+*.env
 .git
-venv/
-node_modules/
+.gitignore
+.vscode/
+.DS_Store
