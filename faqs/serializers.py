@@ -53,7 +53,7 @@ class AnswerSerializer(serializers.ModelSerializer):
 
     class Meta:
         model = Answer
-        fields = ['id', 'title', 'node_type', 'answer_text', 'relevance', 'steps', 'connections', 'image_url', 'is_visible']
+        fields = ['id', 'title', 'node_type', 'answer_text', 'template', 'relevance', 'steps', 'connections', 'image_url', 'is_visible']
 
     def get_image_url(self, obj):
         if obj.image:
