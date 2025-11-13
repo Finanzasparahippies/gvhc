@@ -3,9 +3,12 @@ __pycache__/
 *.pyo
 *.pyd
 *.db
-.env
+*.env
 *.env
 .git
 .gitignore
 .vscode/
 .DS_Store
+*.sqlite3
+node_modules/
+venv/
