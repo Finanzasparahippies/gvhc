@@ -5,6 +5,17 @@ __pycache__/
 *.db
 *.db-journal  # For temporary SQLite files
 
+#archivos pesados
+*.zip
+*.rar
+*.mp4
+*.psd
+*.mkv
+*.iso
+
+# Log files
+app.log*
+
 # Virtual environment directories
 /env/
 /venv/
@@ -49,7 +60,9 @@ git-filter-repo.txt
 # set # If this was a file, add it
 test_redis.py 
 # If it's truly a temporary test script
-models/
+
+# Ignore AI models (Vosk, SpaCy, etc)
+/models/
 *.whl
 *.mdl
 *.fst

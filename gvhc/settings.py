@@ -22,9 +22,12 @@ import ssl # Necesario si vas a manejar CERT_REQUIRED/OPTIONAL programáticament
 
 env = environ.Env()
 environ.Env.read_env()
+SECRET_KEY = os.environ.get("SECRET_KEY", get_random_secret_key())
 
 BASE_DIR = Path(__file__).resolve().parent.parent
 print(BASE_DIR / '.env')
+LOGS_DIR = os.path.join(BASE_DIR, 'logs')
+os.makedirs(LOGS_DIR, exist_ok=True)
 
 load_dotenv(dotenv_path=BASE_DIR / '.env', override=True) 
 
@@ -46,23 +49,17 @@ else: # development (o cualquier otro valor de MODE)
 
 # URL de Redis para Channels
 # Render usa REDIS_URL para Redis
-if MODE == "production":
-    # Ahora, asume que REDIS_URL_PROD ya tiene el parámetro SSL
-    REDIS_URL = os.getenv('REDIS_URL_PROD')
-    if not REDIS_URL:
-        raise Exception("REDIS_URL_PROD must be set in production mode.")
-    # Elimina esta sección, ya no es necesaria:
-    # if 'onrender.com' in REDIS_URL and 'ssl_cert_reqs' not in REDIS_URL:
-    #     REDIS_URL += '?ssl_cert_reqs=none'
-else: # development
-    REDIS_URL = os.getenv('REDIS_URL_DEV', 'redis://localhost:6379/')
-    
+REDIS_URL = os.getenv('REDIS_URL_PROD') if MODE == 'production' else os.getenv('REDIS_URL_DEV', 'redis://redis:6379/0')
+
+
 CHANNEL_LAYERS = {
-    'default': {
-        'BACKEND': 'channels_redis.core.RedisChannelLayer', 
-        'CONFIG': {
+    "default": {
+        "BACKEND": "channels_redis.core.RedisChannelLayer",
+        "CONFIG": {
             "hosts": [REDIS_URL],
-            "ssl_cert_reqs": None,
+            # Asegúrate de que esta configuración coincida con el ssl_cert_reqs de la URL
+            "symmetric_encryption_keys":[SECRET_KEY],
+            # "ssl_cert_reqs": None,
         },
     },
 }
@@ -74,7 +71,7 @@ print(f"DEBUG is: {DEBUG}")
 print(f"SHARPEN_API_BASE_URL is: {SHARPEN_API_BASE_URL}")
 print(f"REDIS_URL is: {REDIS_URL}")
 
-ALLOWED_HOSTS_STR = os.getenv('ALLOWED_HOSTS', 'localhost,127.0.0.1,gvhc-backend-fsqa.onrender.com,gvhc.netlify.app,gvhc-websocket-mawh.onrender.com')
+ALLOWED_HOSTS_STR = os.getenv('ALLOWED_HOSTS', 'localhost,127.0.0.1,gvhc-backend-fsqa.onrender.com,gvhc.netlify.app,gvhc-websocket-mawh.onrender.com,5.78.159.214,gvhc-backend.top')
 ALLOWED_HOSTS_ENV = ALLOWED_HOSTS_STR.split(',')
 
 ALLOWED_HOSTS = [host.strip() for host in ALLOWED_HOSTS_ENV if host.strip()] # Limpiar espacios y vacíos
@@ -112,7 +109,6 @@ DEFAULT_FILE_STORAGE = 'cloudinary_storage.storage.MediaCloudinaryStorage'
 # See https://docs.djangoproject.com/en/5.1/howto/deployment/checklist/
 
 # SECURITY WARNING: keep the secret key used in production secret!
-SECRET_KEY = os.environ.get("SECRET_KEY", get_random_secret_key())
 
 
 # Application definition
@@ -211,8 +207,8 @@ DATABASES = {
             'NAME': os.getenv('POSTGRES_NAME'),
             'USER': os.getenv('POSTGRES_DB_USER'),
             'PASSWORD': os.getenv('POSTGRES_PASSWORD'),
-            'HOST': os.getenv('POSTGRES_HOST'),
-            'PORT': os.getenv('POSTGRES_PORT'),             
+            'HOST': os.getenv('POSTGRES_HOST', 'db'),
+            'PORT': os.getenv('POSTGRES_PORT', '5432'),
         }
 }
 
@@ -259,36 +255,44 @@ LOGGING = {
         },
     },
     'handlers': {
+        'rotating_file': {
+            'level': 'DEBUG',
+            'class': 'logging.handlers.RotatingFileHandler',
+            'filename': os.path.join(LOGS_DIR, 'app.log'),
+            'maxBytes': 5 * 1024 * 1024,  # 5 MB
+            'backupCount': 5,
+            'formatter': 'verbose',
+        },
         'console': {
-            'level': 'DEBUG', # Cambia a INFO si solo quieres ver los INFO y superiores
+            'level': 'DEBUG', # Cambia a INFO si quieres ver solo los logs de nivel INFO y superiores
             'class': 'logging.StreamHandler',
             'formatter': 'simple', # Puedes usar 'verbose' para más detalles
         },
     },
     'loggers': {
         'django': { # Logs de Django
-            'handlers': ['console'],
-            'level': 'INFO', # O 'DEBUG' si quieres ver más logs internos de Django
+            'handlers': ['rotating_file', 'console'],
+            'level': 'DEBUG', # O 'DEBUG' si quieres ver más logs internos de Django
             'propagate': False,
         },
         '': { # Este es el logger por defecto para tu código de aplicación (tu views.py)
-            'handlers': ['console'],
+            'handlers': ['rotating_file', 'console'],  # Envía logs a archivo y consola
             'level': 'DEBUG', # ¡IMPORTANTE! Asegúrate de que esté en DEBUG o INFO
             'propagate': False,
         },
         'channels': {
             'handlers': ['console'],
-            'level': 'DEBUG', # Cambia a INFO en producción si hay demasiados logs
+            'level': 'INFO', # Cambia a INFO en producción si hay demasiados logs
             'propagate': False,
         },
         # Añadir logger para tu app websocket_app
         'websocket_app': {
-            'handlers': ['console'],
+            'handlers': ['console', 'rotating_file'],
             'level': 'DEBUG', # Asegúrate de que los logs de tu consumer se vean
             'propagate': False,
         },
         'calling_monitor': { # Nombre de tu aplicación
-            'handlers': ['console'],
+            'handlers': ['console', 'rotating_file'],
             'level': 'DEBUG', # Cambia a INFO o WARNING en producción
             'propagate': True,
         },
@@ -332,6 +336,8 @@ CORS_ALLOWED_ORIGINS = [
     "https://gvhc-backend-fsqa.onrender.com",
     "https://gvhc-worker.onrender.com",
     "https://gvhc-beat.onrender.com",
+    "http://5.78.159.214",
+    "https://gvhc-backend.top"
 ]
 CORS_ALLOWED_ORIGIN_REGEXES = [
     r"^https://.*\.github\.dev$",
@@ -355,6 +361,8 @@ CSRF_TRUSTED_ORIGINS = [
     "ws://localhost:8001",
     "https://gvhc-websocket.onrender.com",
     "https://gvhc-websocket-mawh.onrender.com",
+    "http://5.78.159.214",
+    "https://gvhc-backend.top"
 ]
 
 CSRF_COOKIE_NAME = 'csrftoken'  # Asegúrate de que este valor sea el correcto
@@ -399,11 +407,15 @@ CELERY_BEAT_SCHEDULE = {
         'task': 'users.tasks.update_agent_gamification_scores', # Asegúrate que el path sea correcto
         'schedule': timedelta(hours=1), # Ajusta la frecuencia (ej: cada hora, cada día, etc.)
         'args': (),
-        'options': {'queue': 'gamification'}
+        'options': {'queue': 'default'}
     },
     # You could also schedule the email task if it needs to be run periodically,
     # but typically email notifications are triggered by events (like post_save signal).
 }
+
+BROKER_TRANSPORT_OPTIONS = {
+    'ssl_cert_reqs': None
+} if MODE == "production" else {}
 
 print(f"FINAL REDIS URL: {REDIS_URL}")
 print(f"CELERY_BROKER_URL: {CELERY_BROKER_URL}")

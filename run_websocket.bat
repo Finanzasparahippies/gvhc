@@ -1,25 +1,19 @@
 @echo off
+setlocal enabledelayedexpansion
 REM --- run_websocket.bat ---
 
 REM Establece la ruta de ffmpeg para esta sesión de terminal.
-set "FFMPEG_PATH=D:\GVHC\09-gvhc\gvhc\env\ffmpeg\bin"
-
-REM Elimina la ruta anterior de FFmpeg para evitar conflictos.
-set "PATH=%PATH:D:\GVHC\ffmpeg-7.1.1-essentials_build\bin=%"
-
-REM Agrega la nueva ruta de FFmpeg al PATH.
-set "PATH=%FFMPEG_PATH%;%PATH%"
+set "FFMPEG_PATH=D:\GVHC\GVHC\Call_analizer_setting_files\ffmpeg-8.0-full_build\ffmpeg-8.0-full_build\bin"
 
 echo.
 echo --- Verificando FFmpeg ---
-echo PATH que se utilizara: %PATH%
+echo Buscando en: !FFMPEG_PATH!
 echo.
 
-ffmpeg -version >nul 2>&1
-if %errorlevel% neq 0 (
-    echo ❌ ERROR: No se pudo encontrar FFmpeg.
-    echo Verifique que la ruta "%FFMPEG_PATH%" sea correcta y contenga ffmpeg.exe.
-    echo.
+REM Verifica que el ejecutable exista
+if not exist "!FFMPEG_PATH!\ffmpeg.exe" (
+    echo ❌ ERROR: No se encontró "!FFMPEG_PATH!\ffmpeg.exe".
+    echo Verifique la ruta.
     pause
     exit /b 1
 )

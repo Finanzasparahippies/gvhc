@@ -1,6 +1,6 @@
 import openpyxl
 from rest_framework import viewsets, status
-from rest_framework.decorators import api_view
+from rest_framework.decorators import api_view, action
 from rest_framework.response import Response
 from django.db.models import Q, F, Func, Value
 from django.db.models.functions import Concat
@@ -11,12 +11,19 @@ from pprint import pprint
 
 
 class AnswerViewSet(viewsets.ModelViewSet):
-    queryset = Answer.objects.all()
+    queryset = Answer.objects.filter(is_visible=True)
     serializer_class = AnswerSerializer
 
 class FaqViewSet(viewsets.ModelViewSet):
-    queryset = Faq.objects.all()
+    queryset = Faq.objects.filter(is_visible=True)
     serializer_class = FaqSerializer
+
+    @action(detail=True, methods=['post'])
+    def hide(self, request, pk=None):
+        faq = self.get_object()
+        faq.is_visible = False
+        faq.save()
+        return Response({'status': 'FAQ hidden'})
 
 @api_view(['GET'])
 def search_faqs(request):
@@ -30,7 +37,8 @@ def search_faqs(request):
             # Q(keywords__icontains=query) |
             Q(answers__title__icontains=query) | # Considera añadir esto si el título de Answer es relevante para la búsqueda
             Q(answers__answer_text__icontains=query) | 
-            Q(answers__keywords__icontains=query) 
+            Q(answers__keywords__icontains=query),
+            is_visible=True
         ).distinct()
 
         serializer = FaqSerializer(faqs, many=True, context={'query': query})

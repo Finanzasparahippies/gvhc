@@ -11,17 +11,16 @@ from django.db.models import F # Para actualizaciones atómicas y seguras
 from channels.layers import get_channel_layer
 from asgiref.sync import async_to_sync
 from .monitoring import get_resource_metrics
+import ssl  # Asegúrate de importar ssl para usar CERT_NONE
 
 logger = logging.getLogger(__name__)
+
 
 # _last_data_checksums = {
 #     'getCallsOnHoldData': None,
 #     'liveQueueStatus': None,
 #     # Puedes añadir más si tu full_frontend_payload crece
 # }
-
-_last_on_hold_checksum = None
-_last_live_queue_checksum = None
 
 
 def get_checksum(data_to_hash):
@@ -130,15 +129,18 @@ def update_agent_gamification_scores():
 @shared_task
 def broadcast_calls_update():
     try:
-        last_on_hold_checksum = cache.get('last_on_hold_checksum', None)
-        last_live_queue_checksum = cache.get('last_live_queue_checksum', None)    
+        # 1. Leer el último estado desde la caché
+        from django.core.cache import cache
+        last_on_hold_checksum = cache.get('last_on_hold_checksum')
+        last_live_queue_checksum = cache.get('last_live_queue_checksum')
         
-        channel_layer = get_channel_layer()
+        logger.debug(f"Last checksums from cache: OnHold={last_on_hold_checksum}, LiveQueue={last_live_queue_checksum}")
 
+        channel_layer = get_channel_layer()
         if not channel_layer:
             logging.error("Error: Channel layer not configured.")
             return
-        
+
         payload_on_hold = async_to_sync(fetch_calls_on_hold_data)()
         calls_on_hold_data = payload_on_hold.get('getCallsOnHoldData', []) if isinstance(payload_on_hold, dict) else []
 
@@ -148,33 +150,44 @@ def broadcast_calls_update():
         new_on_hold_checksum = get_checksum(calls_on_hold_data)
         new_live_queue_checksum = get_checksum(live_queue_status_data)
 
-        if new_on_hold_checksum != _last_on_hold_checksum or new_live_queue_checksum != _last_live_queue_checksum:
+        logger.debug(f"New checksums: OnHold={new_on_hold_checksum}, LiveQueue={new_live_queue_checksum}")
+        transitioned_to_empty = (
+            (calls_on_hold_data == [] and last_on_hold_checksum not in [None, get_checksum([])]) or
+            (live_queue_status_data == [] and last_live_queue_checksum not in [None, get_checksum([])])
+        )
+        # 2. Comparar los nuevos checksums con los de la caché
+        if (
+            new_on_hold_checksum != last_on_hold_checksum
+            or new_live_queue_checksum != last_live_queue_checksum
+            or transitioned_to_empty
+        ):
             logger.info("[Celery] Cambios detectados. Emitiendo actualización a clientes WebSocket.")
 
-           
             full_frontend_payload = {
+                "type": "dataUpdate",
+                "payload": {
                 "getCallsOnHoldData": calls_on_hold_data,
                 "getLiveQueueStatusData": live_queue_status_data
+                }
             }
+
+            message_to_send = json.dumps(full_frontend_payload)
+
             async_to_sync(channel_layer.group_send)(
                 "calls",
                 {
-                    "type": "dataUpdate",
-                    "payload": full_frontend_payload
+                    "type": "send.message", 
+                    "payload": message_to_send 
                 }
             )
-
+        # 3. Guardar el nuevo estado en la caché
             cache.set('last_on_hold_checksum', new_on_hold_checksum)
             cache.set('last_live_queue_checksum', new_live_queue_checksum)
 
         else:
             logger.info("[Celery] No se detectaron cambios en los datos. No se envía actualización a los clientes.")
-            # Puedes enviar un 'ping' o una señal de que el WS sigue vivo si lo prefieres,
-            # pero el frontend ya tiene un mecanismo de ping.
-
     except Exception as e:
         logger.exception(f"Error en Celery broadcast_calls_update: {e}")
-
 
 
 

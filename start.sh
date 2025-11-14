@@ -1,10 +1,11 @@
 #!/bin/bash
+set -e
 
-# Iniciar daphne en segundo plano
-daphne gvhc.asgi:application --port $PORT --bind 0.0.0.0 -v3 &
+echo "Aplicando migraciones..."
+python manage.py migrate --noinput
 
-# Iniciar celery worker en segundo plano
-celery -A gvhc worker --loglevel=info --pool=solo &
+echo "Recolectando archivos estáticos..."
+python manage.py collectstatic --noinput
 
-# Iniciar celery beat en primer plano (para mantener el contenedor activo)
-celery -A gvhc beat --loglevel=info
+echo "Ejecutando proceso: $@"
+exec "$@"
