@@ -1,13 +1,6 @@
 from django.db import models
 from cloudinary.models import CloudinaryField
 
-<<<<<<< HEAD
-# Create your models here.
-from django.db import models
-from cloudinary.models import CloudinaryField
-
-=======
->>>>>>> e6e4bf38f7bd55be6422d3dac323f7ff3cce294e
 class News(models.Model):
     LEVEL_CHOICES = [
         ('info', 'Info'),

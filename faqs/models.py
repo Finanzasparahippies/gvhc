@@ -41,10 +41,7 @@ class Answer(models.Model):
     related_answers = models.ManyToManyField('self', through='AnswerConnection', symmetrical=False)
     pos_x = models.FloatField(null=True, blank=True)
     pos_y = models.FloatField(null=True, blank=True)
-<<<<<<< HEAD
     is_visible = models.BooleanField(default=True)  # Nuevo campo
-=======
->>>>>>> 079e3c9 (first commit)
 
     def __str__(self):
         return self.title[:50] if self.title else "No text available"
@@ -58,10 +55,7 @@ class Step(models.Model):
     excel_file = models.FileField(upload_to='steps/excel_files/', blank=True, null=True)
     pos_x = models.FloatField(null=True, blank=True)
     pos_y = models.FloatField(null=True, blank=True) 
-<<<<<<< HEAD
     is_visible = models.BooleanField(default=True)  # Nuevo campo
-=======
->>>>>>> 079e3c9 (first commit)
 
 
     class Meta:
@@ -124,10 +118,7 @@ class Faq(models.Model):
     events = models.ManyToManyField(Event, blank=True, related_name='events')
     pos_x = models.FloatField(null=True, blank=True)
     pos_y = models.FloatField(null=True, blank=True)
-<<<<<<< HEAD
     is_visible = models.BooleanField(default=True)  # Nuevo campo
-=======
->>>>>>> 079e3c9 (first commit)
 
     def __str__(self):
         return self.question 
@@ -139,10 +130,7 @@ class Slide(models.Model):
     right = models.ForeignKey('self', on_delete=models.SET_NULL, null=True, blank=True, related_name='right_slide')
     up = models.ForeignKey('self', on_delete=models.SET_NULL, null=True, blank=True, related_name='up_slide')
     down = models.ForeignKey('self', on_delete=models.SET_NULL, null=True, blank=True, related_name='down_slide')
-<<<<<<< HEAD
     is_visible = models.BooleanField(default=True)  # Nuevo campo
-=======
->>>>>>> 079e3c9 (first commit)
 
     def __str__(self):
         return f"Slide for {self.faq} - {self.question[:50]}"
