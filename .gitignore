@@ -5,6 +5,14 @@ __pycache__/
 *.db
 *.db-journal  # For temporary SQLite files
 
+#archivos pesados
+*.zip
+*.rar
+*.mp4
+*.psd
+*.mkv
+*.iso
+
 # Log files
 app.log*
 
@@ -50,4 +58,13 @@ celeryd.pid
 git-filter-repo.txt
 # et --hard 754bc50 # If this was a file, add it
 # set # If this was a file, add it
-test_redis.py # If it's truly a temporary test script
+test_redis.py 
+# If it's truly a temporary test script
+
+# Ignore AI models (Vosk, SpaCy, etc)
+/models/
+*.whl
+*.mdl
+*.fst
+*.raw
+*.carpa
