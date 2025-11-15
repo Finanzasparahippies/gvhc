@@ -256,7 +256,7 @@ LOGGING = {
     },
     'handlers': {
         'rotating_file': {
-            'level': 'DEBUG',
+            'level': 'INFO',
             'class': 'logging.handlers.RotatingFileHandler',
             'filename': os.path.join(LOGS_DIR, 'app.log'),
             'maxBytes': 5 * 1024 * 1024,  # 5 MB
@@ -264,7 +264,7 @@ LOGGING = {
             'formatter': 'verbose',
         },
         'console': {
-            'level': 'DEBUG', # Cambia a INFO si quieres ver solo los logs de nivel INFO y superiores
+            'level': 'INFO', # Cambia a INFO si quieres ver solo los logs de nivel INFO y superiores
             'class': 'logging.StreamHandler',
             'formatter': 'simple', # Puedes usar 'verbose' para más detalles
         },
@@ -272,12 +272,12 @@ LOGGING = {
     'loggers': {
         'django': { # Logs de Django
             'handlers': ['rotating_file', 'console'],
-            'level': 'DEBUG', # O 'DEBUG' si quieres ver más logs internos de Django
+            'level': 'INFO', # O 'DEBUG' si quieres ver más logs internos de Django
             'propagate': False,
         },
         '': { # Este es el logger por defecto para tu código de aplicación (tu views.py)
             'handlers': ['rotating_file', 'console'],  # Envía logs a archivo y consola
-            'level': 'DEBUG', # ¡IMPORTANTE! Asegúrate de que esté en DEBUG o INFO
+            'level': 'INFO', # ¡IMPORTANTE! Asegúrate de que esté en DEBUG o INFO
             'propagate': False,
         },
         'channels': {

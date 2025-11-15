@@ -21,14 +21,14 @@ BASE_DIR = os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__fil
 
 # Define paths for both models
 VOSK_MODEL_ES_PATH = os.path.join(BASE_DIR, "models", "vosk-model-small-es-0.42")
-VOSK_MODEL_EN_PATH = os.path.join(BASE_DIR, "models", "vosk-model-small-en-us-0.15")
+VOSK_MODEL_EN_PATH = os.path.join(BASE_DIR, "models", "vosk-model-en-us-0.22")
 
 VOSK_MODELS = {
     "es": Model(VOSK_MODEL_ES_PATH),
     "en": Model(VOSK_MODEL_EN_PATH)
 }
 
-NLP_MODEL = spacy.load("en_core_web_sm")
+NLP_MODEL = spacy.load("en_core_web_md")
 
 ffmpeg_local_path = os.path.join(BASE_DIR, "env", "ffmpeg", "bin")
 
