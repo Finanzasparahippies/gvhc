@@ -12,3 +12,10 @@ __pycache__/
 *.sqlite3
 node_modules/
 venv/
+
+models/
+*.zip
+*.mdl
+*.fst
+*.raw
+*.carpa

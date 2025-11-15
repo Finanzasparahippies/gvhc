@@ -17,16 +17,21 @@ import gc
 import tracemalloc  # Para debugging memoria opcional
 
 logger = logging.getLogger(__name__)
+
 BASE_DIR = os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
-# Define paths for both models
-VOSK_MODEL_ES_PATH = os.path.join(BASE_DIR, "models", "vosk-model-small-es-0.42")
-VOSK_MODEL_EN_PATH = os.path.join(BASE_DIR, "models", "vosk-model-en-us-0.22")
+# Detect if running inside Docker
+RUNNING_IN_DOCKER = os.path.exists("/.dockerenv")
 
-VOSK_MODELS = {
-    "es": Model(VOSK_MODEL_ES_PATH),
-    "en": Model(VOSK_MODEL_EN_PATH)
-}
+if RUNNING_IN_DOCKER:
+    # Path inside Docker (host folder mounted at /models)
+    VOSK_MODEL_ES_PATH = "/models/vosk-model-es-0.42"
+    VOSK_MODEL_EN_PATH = "/models/vosk-model-en-us-0.22"
+else:
+    # Path in local development (Windows)
+    VOSK_MODEL_ES_PATH = os.path.join(BASE_DIR, "models", "vosk-model-es-0.42")
+    VOSK_MODEL_EN_PATH = os.path.join(BASE_DIR, "models", "vosk-model-en-us-0.22")
+
 
 NLP_MODEL = spacy.load("en_core_web_md")
 
