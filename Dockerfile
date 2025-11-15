@@ -15,7 +15,7 @@ RUN apt-get update && apt-get install -y \
 COPY requirements.txt /app/
 RUN pip install --upgrade pip && pip install -r requirements.txt
 # Descargar modelos de spaCy
-RUN python -m spacy download en_core_web_sm && python -m spacy download es_core_news_sm
+RUN python -m spacy download en_core_web_md && python -m spacy download es_core_news_md
 RUN rm -rf /root/.cache/pip
 
 # Copiar archivos del proyecto
