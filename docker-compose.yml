@@ -11,6 +11,8 @@ services:
     depends_on:
       - redis
     restart: unless-stopped
+    volumes:
+      - /home/saul/vosk_models:/app/models   # <-- monta los modelos aquí      
 
     #   - db
 
@@ -25,6 +27,8 @@ services:
       - .env
     depends_on:
       - redis
+    volumes:
+      - /home/saul/vosk_models:/app/models   # <-- monta los modelos aquí también
     #   - db
 
   celery_beat:
@@ -38,6 +42,8 @@ services:
       - .env
     depends_on:
       - redis
+    volumes:
+      - /home/saul/vosk_models:/app/models   # <-- y aquí
     #   - db
 
   redis:
